@@ -1,0 +1,160 @@
+#tab li {
+  float: left;
+  padding: 5px;
+  margin-right: 5px;
+  list-style: none;
+  cursor: pointer;
+  background: #eee;
+}
+ul#tab {
+  margin:0px;
+  padding:0px;
+}
+#tab li.select {
+  background: #fcc;
+  text-decoration: underline;
+}
+.content_wrap {
+  clear: left;
+  width: 100%;
+  //background: #fcc;
+  //padding: 10px 0px 10px 0px;
+}
+.piano {
+    position:relative;
+    height:150px;
+    width: 450px;
+    //margin: 10px;
+}
+.guitar {
+    position:relative;
+    height:150px;
+    //margin: 10px;
+}
+
+.white-key-set {
+    position:absolute;
+    left:0px;
+    top:0px;
+    float:left;
+    //display:-webkit-box;
+    //display:-moz-box;
+    display: box;
+}
+
+.white-key-set .keyboard {
+    float:left; 
+    //display:-moz-box;
+    width:25px;
+    height:100px;
+    border:solid 1px black;
+    background-color: #eee;
+}
+.white-key-set .selected {
+    background-color: #f11;
+}
+.black-key-set {
+    float:left; 
+    //display:-webkit-box;
+    //display:-moz-box;
+    display: box;
+    position:absolute;
+    top: 1px;
+    left: 15px;
+}
+.black-key-set .keyboard {
+    float:left; 
+    display:-moz-box;
+    width:20px;
+    height:60px;
+    border:solid 1px white;
+    margin-right: 5px;
+    background-color: #000;
+}
+.black-key-set .selected {
+    background-color: #d00;
+}
+.guitar table {
+    border-spacing:0;
+}
+.neck td {
+    padding:0;
+    width:40px;
+    height:20px;
+    font-size: 12px;
+    text-align: right;
+    white-space: nowrap;
+    cursor: pointer;
+    position:relative;
+    margin:0;
+}
+.neck .fret{
+    background-color: #fe7;
+    border-right: 1px solid #970;
+}
+.neck .open {
+    font-size: 10px;
+    line-height: 20px;
+    text-align: center;
+}
+
+.ceja.selected {
+    font-weight: bold;
+    background-color: #ccf;
+}
+.ceja {
+    position:relative;
+}
+
+.result {
+    float:left;
+    background-color: #fdd;
+    border: 1px solid gray;
+    width: 320px;
+    margin: 5px;
+    padding: 0px 15px 0px 0px;
+}
+.option {
+    float:left;
+    margin: 5px;
+}
+.option input[type=button] {
+    border:black 1px solid;
+    margin: 1px;
+    background: #cccccc;
+    padding: 5px;
+    font-size: 100%;
+}
+
+.pressdown {
+    position:absolute;
+    width:15px;
+    z-index:2;
+    height:15px;
+    border-radius:50%;
+    background-color:#f11;
+    right:3px;
+    top:3px;
+    opacity:.9;
+}
+.pressceja {
+    position:absolute;
+    width:15px;
+    height:120px;
+    background-color:#f11;
+    z-index:2;
+    border-radius:10px;
+    right:5px;
+    top:0px;
+    opacity:.9;
+}
+.strings {
+    pointer-events:none;
+    position:absolute;
+    width: 300px;
+    height:2px;
+    background-color: #992;
+    top:10px;
+    left:35px;
+    z-index:1;
+}
