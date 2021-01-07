@@ -4,16 +4,32 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <title>Chord Namer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script type="text/javascript" src="../../jquery-2.1.4.js"></script>
 <script type="text/javascript" src="chord_name.js"></script>
+<script type="text/javascript" src="c2t.js"></script>
+<script type="text/javascript" src="gtform.js"></script>
 <link rel="stylesheet" type="text/css" href="chord_namer.css">
 </head>
 <body>
 <h2>こぉどねぃま</h2>
 <ul id="tab">
-  <li id="pf">Piano</li>
-  <li id="gt" class="select">Guitar</li>
+  <li id="pf">Piano to Chord</li>
+  <li id="ch2pf">Chord to Piano</li>
+  <li id="gt" class="select">Guitar to Chord</li>
+  <li id="ch2gt">Chord to Guitar</li>
 </ul>
+<div class="gtform content_wrap">
+  <div id="chord_template" class="chord">
+    <div class="min">1</div>
+    <div class="point">1</div>
+    <table class="onko">
+      <tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+    </table>
+  </div>
+  <div id="chforms"></div>
+</div>
 <div class="piano content_wrap">
  <div class="white-key-set">
     <div class="keyboard selected" name="10"></div>
@@ -124,12 +140,47 @@
  </tr>
  </tbody></table>
 </div>
-<div class="result"><ul id="result"></ul></div>
-<div class="option">
-    <input type="button" class="reset" value="Reset"><br>
-    <input type="button" class="accidental sharp" value="[#]/b"><br>
+<div class="content_wrap" id="outchord">
+  <div class="result" id="outchord"><ul id="result"></ul></div>
 </div>
+<div class="content_wrap" id="inchord" style="clear:both;">
+  <div class="result">
+    <ul>
+      <li class="editable">
+        <input type="textbox" id="chordname" value="Cm7">
+      </li>
+      <span id="ignored">不正な表記?: <span id="ignoredstr"></span></span>
+    </ul>
+    <p style="margin:5px;">
+      <select id="root"></select>
+      <label><input type="checkbox">m</label>
+      <label><input type="checkbox">dim</label><br/>
+      <label><input type="checkbox">6</label>
+      <label><input type="checkbox">7</label>
+      <label><input type="checkbox">M7</label>
+      <label><input type="checkbox">+5 / aug</label>
+      <label><input type="checkbox">-5</label><br/>
+      <label><input type="checkbox">(9) / add9</label>
+      <label><input type="checkbox">(-9)</label>
+      <label><input type="checkbox">(+9)</label>
+      <label><input type="checkbox">(11)</label>
+      <label><input type="checkbox">(+11)</label>
+      <label><input type="checkbox">(13)</label>
+      <label><input type="checkbox">(-13)</label><br/>
+      <label><input type="checkbox">sus4</label>
+      <label><input type="checkbox">omit3</label>
+      <label><input type="checkbox">omit5</label><br/>
+      <label><input type="checkbox">on</label>
+      <select id="onroot"></select>
+    </p>
+  </div>
+</div>
+<div class="option">
+  <input type="button" class="reset" value="Reset"><br>
+  <input type="button" class="accidental sharp" value="[#]/b"><br>
+</div>
+
 <hr style="clear:both;">
-Ver1.20 / 動作確認：Firefox 21.0 on WinXP, Chrome 25.0 on Android 4.2
+Ver1.20 / 動作確認：Firefox 59.0 on Win10 or Ubuntu16.04, Chrome 64.0 on Android 5.0.2
 </body>
 </html>

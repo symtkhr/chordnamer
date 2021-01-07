@@ -104,7 +104,7 @@ var chordname = function(tones, is_sharp)
                 str_7th = "6";
         }
         
-        //慣用句 m-5(13) -> dim7
+        // 慣用句 m-5(13) -> dim7
         if ((triad.third == 3) && (triad.fifth == 6) && incl[9] && !str_7th){
             str_triad = "dim";
             str_7th = "7";
@@ -136,11 +136,11 @@ var chordname = function(tones, is_sharp)
 
             // ルートからの音程クラス配列を得る
             var includings = relatives(root, tones);
-            
+ 
             // 3度と5度を取り出す
             var triad = factorize(includings);
             if (!triad.third && !triad.fifth) return;
-                
+
             // 命名する
             var fullname = tonename(root) + assemblechord(triad, includings);
 
@@ -179,6 +179,10 @@ var show_result = function(chords)
 // UIからtonesをつくる
 var pftone = function()
 {
+    location.href = "#pf2c."
+        + $(".keyboard.selected").map(function(){ return $(this).attr("name"); })
+        .get().sort().join("");
+
     if ($(".keyboard.selected").length < 2) return [];
 
     return $(".keyboard.selected").map(function(){ return $(this).attr("name"); })
@@ -194,6 +198,10 @@ var gttone = function()
         var fret = $(this).attr("name").charAt(1);
         fretpos[strg - 1] = (0 < fret) ? parseInt(fret) : -1;
     });
+
+    // 引数
+    location.href = "#gt2c." + fretpos.map(v => v == -1 ? "x" : v.toString()).join("");
+    location.href += ".c" + $(".ceja.selected").text() + ".p" + $(".ceja:first").text();
 
     // ツェーハの左側を押弦していたら開放扱い
     $(".ceja.selected").each(function(){
@@ -249,23 +257,28 @@ var screenout_fret = function()
 };
 
 
-// UIのイベントハンドラ
+// pf2c・gt2cのUIイベントハンドラ
 $(function() {
     $("#tab li").click(function() {
-        var num = $("#tab li").index(this);
+        var id = $(this).attr("id");
         $(".content_wrap").hide();
-        $(".content_wrap").eq(num).show();
         $("#tab li").removeClass('select');
         $(this).addClass('select');
+        if (id == "pf") $(".piano, #outchord").show();
+        if (id == "gt") $(".guitar, #outchord").show();
+        if (id == "ch2pf") $(".piano, #inchord").show();
+        if (id == "ch2gt") $(".gtform, #inchord").show();
         screenout_fret();
-    }).eq(1).click();
+    }).filter(".select").click();
     
     $(".reset").click(function(){
         if ($("#tab li.select").attr("id") === "pf") {
             $(".keyboard.selected").removeClass("selected");
+            location.href = "#pf";
         } else {
             $(".fret, .open, .ceja").removeClass("selected");
             $(".ceja").each(function(){ $(this).text($(this).attr("name")); });
+            location.href = "#gt";
         }
         screenout_fret();
     });
@@ -278,6 +291,7 @@ $(function() {
             $(this).removeClass("sharp");
         
         $(this).val(is_sharp ? "[#]/b" : "#/[b]");
+        if (!is_sharp) location.href += ";flat";
         screenout();
     });
     
