@@ -16,8 +16,19 @@ ui.c2p.draw(tone) -> 上記オブジェクトをベースに描画(analyze)
 ui.c2g.draw(tone) -> 上記オブジェクトをベースに描画(analyze)
 
 <hashベースに書換>
-onload,tab click => domベース(hash書換)
-それ以外 => hashベース
+onload,tab click,edit => domベース(hash書換)
+それ以外(click,keydown) => hashベース
+
+<UI入力時>
+hash内容の書換
+calc
+draw
+
+<hash入力時・タブ切替時>
+hash内容の展開
+hash内容のvalid & complement(fromDOM)->終了
+calc
+draw
 
 */
 const $id = (id) => document.getElementById(id);
@@ -47,6 +58,7 @@ const show_chords = (chords) =>
         $li.style.fontWeight = "bold";
         $li.style.backgroundColor = "#ecc"
     });
+    if (chords.length) $id("chordname").value = chords[0].name;
 };
 
 const is_sharp = () => {
@@ -55,13 +67,11 @@ const is_sharp = () => {
     return sharp;
 };
 
-p2c.show_chords = show_chords;
 p2c.hash = (hash) => {
     if (hash == undefined) {
-        location.href = "#p2c="
+        return "#p2c="
             + [... $q(".keyboard.selected")].map($dom => $dom.id.slice(1))
             .sort().join("");
-        return;
     }
 
     hash.split(".").forEach(key => {
@@ -87,7 +97,7 @@ p2c.event = () => {
         let id = $q("#tab li.select")[0].id;
         if (id != "p2c") $id("p2c").click();
         $dom.classList.toggle("selected");
-        p2c.hash();
+        location.hash = p2c.hash();
     }));
 };
 
@@ -95,15 +105,13 @@ p2c.draw = () => {
     $id("outchord").style.display = "";
     $c("piano")[0].style.display = "";
     const chords = chordname(p2c.tone(), is_sharp());
-    return p2c.show_chords(chords);
+    show_chords(chords);
 };
 
 p2c.reset = () => {
     [...$q(".keyboard.selected")].map($dom => $dom.classList.remove("selected"));
 };
 
-
-g2c.show_chords = show_chords;
 
 g2c.hash = function(hash)
 {
@@ -122,10 +130,8 @@ g2c.hash = function(hash)
         if (ceja) params.push(ceja.id);
         if (1 < pos) params.push("p" + pos);
         if (!$c("accidental")[0].classList.contains("sharp")) params.push("b");
-        console.log(params);
 
-        location.href = "#g2c=" + params.join(".");
-        return;
+        return "#g2c=" + params.join(".");
     }
 
     hash.split(".").forEach(key => {
@@ -134,10 +140,10 @@ g2c.hash = function(hash)
             key.split("").map((v, i) => {
                 if (v == 0) return;
                 let id = "g" + (i + 1).toString() + (v == "x" ? "0" : v);
-                $id(id).classList.add("selected");
+                $id(id) && $id(id).classList.add("selected");
             });
         }
-        if (key.match(/^c[0-9]+/)) {
+        if (key.match(/^c[0-7]+/)) {
             [... $c("ceja")].map($dom => $dom.classList.remove("selected"));
             $id(key).classList.add("selected");
         }
@@ -197,23 +203,19 @@ g2c.draw = () => {
         $dom.innerText = ("");
         if ($dom.classList.contains("selected"))
             $dom.innerText = ("X");
-        else if (ceja)
-            return;
-        else if ($dom.parentNode.getElementsByClassName("selected").length == 0)
+        else if (!ceja && $dom.parentNode.getElementsByClassName("selected").length == 0)
             $dom.innerText = ("O");
-    });
 
-    $c("guitar")[0].style.display = "";
-    $id("outchord").style.display = "";
-
-    [...$c("open")].map($dom => {
         let $div = document.createElement("div");
         $div.classList.add("strings");
         $dom.append($div);
     });
 
+    $c("guitar")[0].style.display = "";
+    $id("outchord").style.display = "";
+
     const chords = chordname(g2c.tone(), is_sharp());
-    g2c.show_chords(chords);
+    show_chords(chords);
 };
 
 g2c.reset = () => {
@@ -231,26 +233,26 @@ g2c.event = () => {
             let is_set = !$dom.classList.contains("selected");
             [...$dom.parentNode.children].map($sibl => $sibl.classList.remove("selected"));
             if (is_set) $dom.classList.add("selected");
-            g2c.hash();
+            g2c.draw();
         }));
 
     [...$c("ceja")].map($dom => $dom.addEventListener("click", () => {
         let is_set = !$dom.classList.contains("selected");
         [...$c("ceja")].map($sibl => $sibl.classList.remove("selected"));
         if (is_set) $dom.classList.add("selected");
-        g2c.hash();
+        g2c.draw();
     }));
     
     $c("plus")[0].addEventListener("click", () => {
         if ($c("ceja")[0].innerText * 1 >= 22) return;
         [...$c("ceja")].map($obj => $obj.innerText = ($obj.innerText * 1 + 1));
-        g2c.hash();
+        g2c.draw();
     });
     
     $c("minus")[0].addEventListener("click", () => {
         if ($c("ceja")[0].innerText * 1 <= 1) return;
         [...$c("ceja")].map($obj => $obj.innerText = ($obj.innerText * 1 - 1));
-        g2c.hash();
+        g2c.draw();
     });
 };
 
@@ -260,11 +262,12 @@ c2p.reset = () => {
 
 c2p.hash = (hash) => {
     if (hash == undefined) {
-        location.href = "#" + $q("#tab li.select")[0].id + "=" + $id("chordname").value;
+        let hash = "#" + $q("#tab li.select")[0].id + "=" + $id("chordname").value;
+        return hash;//location.hash = hash;
         return;
     }
 
-    hash.split(".").forEach(key => {
+    hash.split(".").filter(v => v).forEach(key => {
         if (key == "b") {
             $c("accidental")[0].classList.remove("sharp");
             return;
@@ -272,75 +275,49 @@ c2p.hash = (hash) => {
         $id("chordname").value = key;
     });
 
-    c2p.name2check();
+    c2p.draw();
 };
 
 c2p.event = () => {
-    $id("chordname").addEventListener("keydown", (e) => (e.keyCode == 13) ? c2p.hash() : "");
+    const $checks = [... $q("#inchord input[type=checkbox]")];
+    const listener = $dom => $dom.addEventListener("change", () => {
+        let val = $dom.parentNode.innerText.split("/").shift().trim();
+        let options = $checks.map($dom => $dom.parentNode.innerText.split("/").shift().trim());
 
-    [...$q("#inchord input[type=checkbox], #inchord select")].map(
-        $dom => $dom.addEventListener("change", () => {
-            let val = $dom.parentNode.innerText.split("/").shift().trim();
-
-            // 排他処理
-            if ($dom.checked) {
-                let list = [...$q("#inchord label")]
-                    .map($dom => $dom.innerText.split("/").shift().trim());
-
-                [["+5","-5","dim"],
-                 ["+5","-5","omit5"],
-                 ["+5","(-13)"],
-                 ["-5","(+11)"],
-                 ["m","(+9)"],
-                 ["m", "omit3", "sus4", "sus2"],
-                 ["(11)", "sus4"],
-                 ["(13)", "6"],
-                 ["m", "dim"],
-                 ["6","M7","7"]].forEach((exclusives) => {
-                     if (exclusives.indexOf(val) < 0) return;
-
-                     exclusives.forEach((form) => {
-                         if (list.indexOf(form) < 0) return;
-                         $q("#inchord input[type=checkbox]")[list.indexOf(form)].checked = false;
-                     });
-                 });
-                $dom.checked = true;
-            }
-
-            let ret = c2p.check2name();
-            c2p.hash();
-        }));
-};
-
-// 命名およびretオブジェクトの生成
-c2p.check2name = () => {
-    const diffform = {"m": "min", "aug": "+5", "M7": "maj7"};
-    let val = [...$q("#root option")].find($dom => $dom.selected).value;
-    let ret = {root:0, triad: "", tetrad: "", tensions: [], onroot: -1, root: pitchclass(val)};
-
-    [...$q("#inchord input[type=checkbox]")].map(($dom, n) => {
-        if (!$dom.checked) return;
-        let key = $dom.parentNode.innerText.split("/").shift().trim();
-        if (key == "on") {
-            let onrootkey = [...$q("#onroot option")].find($dom => $dom.selected).value;
-            ret.onroot = pitchclass(onrootkey);
-            if (ret.onroot == ret.root) {
-                ret.onroot = -1;
-            } else {
-                val += " (on " + onrootkey + ")";
-            }
-            return;
+        // 排他処理
+        if ($dom.checked) {
+            [["+5","-5","dim"],
+             ["+5","-5","omit5"],
+             ["+5","(-13)"],
+             ["-5","(+11)"],
+             ["m","(+9)"],
+             ["m", "omit3", "sus4", "sus2"],
+             ["(11)", "sus4"],
+             ["(13)", "6"],
+             ["m", "dim"],
+             ["6","M7","7"]].filter(excls => excls.indexOf(val) != -1)
+                .map(excls => excls.join(";")).join(";").split(";").sort()
+                .map(form => options.indexOf(form)).filter(v => v != -1)
+                .forEach(idx => $checks[idx].checked = false);
+            $dom.checked = true;
         }
-        val += key;
-        if (diffform[key]) key = diffform[key];
+        
+        // 命名
+        let root = [...$q("#root option")].find($dom => $dom.selected).value;
+        let onroot = [...$q("#onroot option")].find($dom => $dom.selected).value;
+        $id("chordname").value = root + $checks.map(($dom, n) => {
+            if (!$dom.checked) return "";
+            let key = options[n];
+            if (key != "on") return key;
+            return (onroot == root) ? "" : " (on " + onroot + ")";
+        }).join("");
 
-        if (n < 2) ret.triad = key;
-        else if (n < 5) ret.tetrad = key;
-        else ret.tensions.push(key);
+        c2p.draw();
     });
 
-    $id("chordname").value = val;
-    return ret;
+    $checks.map(listener);
+    [...$q("#inchord select")].map(listener);
+    $id("chordname").addEventListener("keydown", (e) => (e.keyCode == 13) ? c2p.draw() : "");
 };
 
 const ignored_chordname = (ignored) => {
@@ -351,7 +328,7 @@ const ignored_chordname = (ignored) => {
     $id("ignoredstr").innerText = ignored;
 };
 
-c2p.draw = (struct) => {
+c2p.show_form = (struct) => {
     $c("piano")[0].style.display = "";
     $id("inchord").style.display = "";
     [...$c("keyboard")].map($dom => $dom.classList.remove("selected"));
@@ -368,72 +345,56 @@ c2p.draw = (struct) => {
     });
     
     keynames.push("1" + (onroot % 12).toString(16));
-    keynames.forEach(name => {
-        if (name) $id("k" + name).classList.add("selected");
-    });
+    keynames.map(name => name && $id("k" + name).classList.add("selected"));
     ignored_chordname(struct.ignored);
 };
 
-c2p.name2check = () => {
+c2p.draw = () => {
 
     let $this = $id("chordname");
-    let ret = c2t($this.value);
+    let ret = chordstruct($this.value);
     if (!ret) {
         let val = [...$q("#root option")].find($dom => $dom.selected).value + $this.value;
         $this.value = (val);
-        ret = c2t(val);
+        ret = chordstruct(val);
     }
-
-    $q("#tab li.select")[0].id == "c2p" ? c2p.draw(ret) : c2g.draw(ret);
+    $q("#tab li.select")[0].id == "c2p" ? c2p.show_form(ret) : c2g.show_form(ret);
 
     // namefactorをformに展開
-    const extract_form = function(root, onroot, namefactors)
-    {
-        let $checks = $q("#inchord input[type=checkbox]");
-        let list = [... $q("#inchord label")]
-            .map($dom => $dom.innerText.split("/").shift().trim());
-        [...$checks].map($dom => $dom.checked = false);
-        const diffform = {"min":"m", "aug": "+5", "maj7":"M7"};
-        
-        namefactors.forEach((name) => {
-            if (!name) return;
-            let form = name;
-            if (diffform[name]) form = diffform[name];
-            
-            if (list.indexOf(form) != -1) {
-                $checks[list.indexOf(form)].checked = true;
-                return;
-            }
-            let val = form;
-            
-            //テンション
-            let interval = interval2semitone(val);
-            if (interval < 0) return;
-            // (c2t内でやるべき)
-            form = { 13: "(-9)", 14: "(9)", 15: "(+9)",
-                     17: "(11)", 18: "(+11)",
-                     20: "(-13)", 21: "(13)",
-                     6: "-5",  8: "+5"}[interval];
-            if(list.indexOf(form) == -1) return;
-            $checks[list.indexOf(form)].checked = true;
-        });
+    const $checks = [...$q("#inchord input[type=checkbox]")];
+    const options = $checks.map($dom => $dom.parentNode.innerText.split("/").shift().trim());
 
-        $q("#root option")[root].selected = true;
+    $checks.map($dom => ($dom.checked = false));
+    $q("#root option")[ret.root].selected = true;
+    if (ret.onroot != -1) {
+        $q("#onroot option")[ret.onroot].selected = true;
+        $checks[$checks.length - 1].checked = true;
+    }
 
-        if (onroot != -1) {
-            $q("#onroot option")[onroot].selected = true;
-            $checks[$checks.length - 1].checked = true;
-        }
-    };
+    console.log(ret);
+    ret.tensions.concat([ret.triad, ret.tetrad]).map(name => {
+        if (!name) return -1;
+        let form = {"min":"m", "aug": "+5", "maj7":"M7"}[name] || name;
+        let index = options.indexOf(form);
+        if (index != -1) return index;
 
-    ret.tensions.push(ret.triad);
-    ret.tensions.push(ret.tetrad);
-    extract_form(ret.root, ret.onroot, ret.tensions);
+        //テンション
+        let interval = interval2semitone(form);
+        if (interval < 0) return -1;
+        // (c2t内でやるべき)
+        form = { 13: "(-9)", 14: "(9)", 15: "(+9)",
+                 17: "(11)", 18: "(+11)",
+                 20: "(-13)", 21: "(13)",
+                 6: "-5",  8: "+5"}[interval];
+        return options.indexOf(form);
+    }).filter(v => v != -1)
+        .forEach(idx => ($checks[idx].checked = true));
 };
 
 c2g.reset = c2p.reset;
 c2g.hash = c2p.hash;
-c2g.draw = (struct) => {
+c2g.draw = c2p.draw;
+c2g.show_form = (struct) => {
     let tones = name2tones(struct.triad, struct.tetrad, struct.tensions)
         .sort((a, b) => (a - b))
         .map(tone => (tone + struct.root + 3) % 12);
@@ -444,7 +405,7 @@ c2g.draw = (struct) => {
     $id("inchord").style.display = "";
     $id("chforms").innerText = "";
 
-    tri(tones, (fret, point) => {
+    guitarform(tones, (fret, point) => {
         let $chord = $id("chord_template").cloneNode(true);
         $chord.style.display = "block";
         $id("chforms").appendChild($chord);
@@ -453,6 +414,23 @@ c2g.draw = (struct) => {
         if (min != 0) $chord.getElementsByClassName("min")[0].innerText = (min);
         $chord.getElementsByClassName("point")[0].innerText = (point);
 
+        fret.map((val, index) => {
+            let $div = document.createElement("div");
+            let row = (index == 0) ? 4 : (5 - index);
+            $div.style.top = ((index == 0) ? 3 : -4) + "px";
+            let col = (0 < val) ? (val - min) : 0;
+            $div.style.left = ((0 < val) ? 3 : -9) + "px";
+
+            $chord.querySelectorAll(".onko tr")[row].children[col].appendChild($div);
+            $div.classList.add("s");
+
+            if (val < 0) {
+                $div.style["background-color"] = "transparent";
+                $div.innerText = "X";
+            }
+        });
+
+        if(0)
         fret.map((val, index) => {
             let $div = document.createElement("div");
             $chord.appendChild($div);
@@ -468,6 +446,8 @@ c2g.draw = (struct) => {
             else
                 $div.css({"left": (12 * (val - min + 1)) + "px", "top": ((5 - index) * 7) + "px"});
         });
+
+
     });
 
     ignored_chordname(struct.ignored);
@@ -478,7 +458,7 @@ c2g.draw = (struct) => {
 window.onload = function() {
     // モード切替
     [...$q("#tab li")].map($dom => $dom.addEventListener("click", function() {
-        extract_hash("#" + $dom.getAttribute("id") + "=");
+        location.hash = "#" + $dom.getAttribute("id") + "=";
     }));
 
     // リセット
@@ -516,31 +496,16 @@ window.onload = function() {
         [...$q("#tab li")].map($dom => $dom.classList.remove('select'));
         $id(id).classList.add('select');
 
-        if (id == "p2c") {
-            ui = p2c;
-            p2c.hash(key);
-            p2c.hash();
-            p2c.draw();
-            return;
-        }
-
-        if (id == "c2p") {
-            ui = c2p;
-            ui.hash(key);
-            ui.hash();
-            return;
-        }
-
-        if (id == "c2g") {
-            ui = c2g;
-            ui.hash(key);
-            ui.hash();
-            return;
-        }
         ui = g2c;
-        g2c.hash(key);
-        g2c.hash();
-        g2c.draw();
+        if (id == "p2c") ui = p2c;
+        if (id == "c2p") ui = c2p;
+        if (id == "c2g") ui = c2g;
+
+        console.log(new Date(), "run");
+        ui.hash(key);
+        let rehash = ui.hash();
+        if (rehash == location.hash) return ui.draw();
+        location.hash = rehash;
     };
 
     window.addEventListener("hashchange", () => { extract_hash(location.hash); }, false);

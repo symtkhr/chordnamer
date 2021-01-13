@@ -157,7 +157,7 @@ const chordname = function(tones, is_sharp)
 };
 
 //コード名文字列解釈
-const c2t = function(str) {
+const chordstruct = function(str) {
     var origin = str;
     str = str.split(" ").join("");
 
@@ -318,7 +318,7 @@ const interval2semitone = (str) =>
 
 
 /*
-<c2t:algorithm>
+<chordstruct:algorithm>
 (1)ルートを取り除く
 (2)トライアド部を取り除く
 M,m,Maj,maj,dim,sus,aug

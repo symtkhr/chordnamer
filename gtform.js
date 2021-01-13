@@ -10,7 +10,7 @@ const make_pattern = function(postable) {
 
     var n = 0;
     var sol = [];
-    var check_all_in_3 = function(ret) {
+    const check_all_in_3 = function(ret) {
         var max, min;
         ret.forEach(function(val){
             if (val <= 0) return;
@@ -20,7 +20,7 @@ const make_pattern = function(postable) {
         return (max - min <= 3);
     };
 
-    var select_rest = function(index, ret) {
+    const select_rest = function(index, ret) {
         postable.forEach(function(val) {
             ret.push(val[index]);
             if (check_all_in_3(ret)) {
@@ -52,7 +52,7 @@ const make_pattern = function(postable) {
 // 押弦効率を評価する
 const eval_pattern = function(pattern, tonesize, ceja) {
     var c = 0;
-    var check_all_in_3 = function(ret) {
+    const check_all_in_3 = function(ret) {
         var max = -1;
         var min = -1;
         ret.forEach(function(val){
@@ -63,50 +63,33 @@ const eval_pattern = function(pattern, tonesize, ceja) {
         return (max - min >= 3);
     };
 
-    var fingers = function(ret) {
-        var fn = 0;
-        var min = -1;
-        ret.forEach(function(val, index) {
-            if (val == -1) return;
-            if (min == -1 || val < min) min = val;
-        });
+    const fingers = function(ret) {
+        let min = ret.reduce((min, val) => {
+            if (val == -1) return min;
+            if (min == -1 || val < min) return val;
+            return min;
+        }, -1);
 
-        if (min != 0) fn++;
-        
-        ret.forEach(function(val, index) {
-            if (val == min || val == -1) return;
-            fn++;
-        });
-        
+        let fn = (min != 0) ? 1 : 0;
+        fn += ret.filter(val => (val != min && val != -1)).length;
+
         return fn;
-    }
-
-    var num_of_tone = function(ret) {
-
-        var p = [];
-        ret.forEach(function(val, index) {
-            if (val == -1) return;
-            p.push((gt_open[index] + val) % 12);
-        });
-        return p.filter(function (x, i, self) {
-            return self.indexOf(x) === i;
-        }).length;
     };
 
-    var same_tone = function(ret) {
-        var p = [];
-        ret.forEach(function(val, index) {
-            if (val == -1) return;
-            p.push(gt_open[index] + 12 * gt_octave[index] + val);
-        });
-        return p.length != 
-            p.filter(function (x, i, self) {
-                return self.indexOf(x) === i;
-            }).length; 
+    const num_of_tone = function(ret) {
+        return ret.map((v, index) => v < 0 ? v : (gt_open[index] + v) % 12)
+            .filter((v, i, self) => v != -1 && self.indexOf(v) === i)
+            .length;
+    };
+
+    const same_tone = function(ret) {
+        return ret.map((v, index) => v < 0 ? v : gt_open[index] + 12 * gt_octave[index] + v)
+            .map((v, index) => gt_open[index] + 12 * gt_octave[index] + v)
+            .filter(v => v != -1)
+            .some((v, i, self) => self.indexOf(v) !== i);
     };
 
 
-    
     if (check_all_in_3(pattern)) c += 4;
     var fn = fingers(pattern);
     if (fn == 4) c += 1;
@@ -149,8 +132,7 @@ if(0) {
 
 }
 
-// 結果表示
-const tri = function(tones, callback) {
+const guitarform = function(tones, callback) {
     if (!callback) callback = (a,b) => console.log(a,b);
 
     var result = [];

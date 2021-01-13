@@ -192,6 +192,7 @@ ul#tab {
     left:8px;
 }
 .gtform .onko td {
+    position: relative;
     font-size:10px;
     width:11px;
     height:7px;
@@ -218,6 +219,8 @@ ul#tab {
    height:6px;
    background-color:#f44;
    border-radius:50%;
+   z-index:1;
+   line-height:6px;
 }
 
 .gtform .min {
