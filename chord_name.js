@@ -1,169 +1,35 @@
-// コード名を返す
-var chordname = function(tones, is_sharp)
-{
-    var complex = 0; //複雑さ
+/* 
 
-    //音名
-    var tonename = function(tone)
-    {
-        tone %= 12;
-        if (is_sharp)
-            return ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"][tone];
-        else
-            return ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"][tone];
-    };
+ui.g2c.draw() -> classDOMを画面展開(screenout_fret)
+ui.g2c.hash(hash) -> hashをclassDOMに展開(extract), 無引数でDOMをhash化
+ui.g2c.tone() -> hashをtone化 (gttone)
+ui.g2c.events() -> clickイベント ($(function())
+ui.gp2c.showchord() -> chordを画面表示
+ui.sharp() -> sharp表現のトグル
 
-    //音程配列 bool[12]
-    var relatives = function(root, tones)
-    {
-        return tones.reduce(function(ret, v) {
-            ret[(v - root + 12) % 12] = true;
-            return ret;
-        }, []);
-    };
+ui.c2pg.events() -> clickイベント,keyイベント
+ui.c2pg.hash(hash) -> hashをDOMに展開(extract), 無引数でDOMをhash化
+ui.c2pg.check2name() -> checkからinputDOMに展開
+ui.c2pg.name2check() -> inputDOM値からcheck展開
+ui.c2pg.tone() -> {root:0, triad: "", tetrad: "", tensions: [], onroot: -1} というオブジェクトを返す
+ui.c2p.draw(tone) -> 上記オブジェクトをベースに描画(analyze)
+ui.c2g.draw(tone) -> 上記オブジェクトをベースに描画(analyze)
 
-    //3度と5度を取り出す(なんかエレガントな書き方ないか...?)
-    var factorize = function(incl)
-    {
-        var triad = {};
+*/
 
-        //m7とM7が同時に鳴っている和音はコード化できない
-        if (incl[10] && incl[11]) return {};
+let p2c = {};
+let g2c = {};
+let c2p = {};
+let c2g = {};
+let ui = g2c;
 
-        if (incl[4]) {        // ------------ M3 based
-            triad.third = 4;
-            if(incl[7]){          // M3 + P5
-                triad.fifth = 7;
-            } else if(incl[8]) {  // M3 + aug5
-                triad.fifth = 8;
-            } else if(incl[6]) {  // M3 + dim5 (複雑)
-                triad.fifth = 6;
-                complex += 3;
-            } else {
-                triad.opt = "omit5";
-                complex += 3;
-            }
-        } else if (incl[3]) { // -------------- m3 based
-            triad.third = 3;
-            if (incl[7]) {         // m3 + P5
-                triad.fifth = 7;
-            } else if(incl[6]) {  // m3 + dim5
-                triad.fifth = 6;
-            } else if(incl[8]) {  // m3 + aug5 (複雑)
-                triad.fifth = 8;
-                complex += 3;
-            } else {
-                triad.opt = "omit5";
-                complex += 3;
-            }
-        } else if (incl[7]) { // ------------- P5 based
-            triad.fifth = 7;
-            if (incl[5]) {              // P5 + P4
-                triad.opt = "sus4";
-                complex++;
-                incl[5] = false;
-            } else {
-                triad.opt = "omit3";
-                complex += 3;
-            }
-        }
-
-        incl[triad.third] = false;
-        incl[triad.fifth] = false;
-
-        return triad;
-    };
-
-    //三和音と残りの構成音をコード名にする
-    var assemblechord = function(triad, incl)
-    {
-        var tension = [];
-        var str_triad = "";
-        var str_7th = "";
-        var str_5th = "";
-        
-        if (triad.third == 3) str_triad = "m";
-        if (triad.third == 4) str_triad = "";
-        if (triad.fifth == 6) str_5th = "-5";
-        if (triad.fifth == 8) str_5th = "+5";
-        if (incl[11]) str_7th = "M7";
-        if (incl[10]) str_7th = "7";
-        
-        if (incl[1]) tension.push("-9");
-        if (incl[2]) tension.push("9");
-        if (incl[3]) tension.push("+9");
-        if (incl[5]) tension.push("11");
-        if (incl[6]) tension.push("+11");
-        if (incl[8]) tension.push("-13");
-
-        // 6th or 13th(7th,±5thがある場合のみ)
-        if (incl[9]) {
-            if (str_7th || str_5th)
-                tension.push("13");
-            else
-                str_7th = "6";
-        }
-        
-        // 慣用句 m-5(13) -> dim7
-        if ((triad.third == 3) && (triad.fifth == 6) && incl[9] && !str_7th){
-            str_triad = "dim";
-            str_7th = "7";
-            str_5th = "";
-            tension.pop();
-        }
-
-        // テンションが2個以上あるときは複雑
-        if (2 <= tension.length) complex += tension.length - 1;
-        
-        return str_triad
-            + str_7th
-            + str_5th
-            + (tension.length ? "(" + tension.join(",") + ")" : "")
-            + (triad.opt ? triad.opt: "");
-    };
-
-    //tones[] からコード名をつける
-    return function(tones)
-    {
-        var originroot = tones[0];
-
-        //重複音の除去
-        tones = tones.filter((tone, i, self) => self.indexOf(tone) == i);
-
-        //転回形を考える
-        return tones.map(function(root) {
-            complex = 0;
-
-            // ルートからの音程クラス配列を得る
-            var includings = relatives(root, tones);
- 
-            // 3度と5度を取り出す
-            var triad = factorize(includings);
-            if (!triad.third && !triad.fifth) return;
-
-            // 命名する
-            var fullname = tonename(root) + assemblechord(triad, includings);
-
-            // オンコード
-            if (root != originroot) {
-                fullname += " (on " + tonename(originroot) + ")";
-                complex++;
-            }
-
-            return {name:fullname, comp:complex};
-
-        }).filter(a => a).sort(function(a, b){ return (a.comp - b.comp); });
-    }(tones);
-};
-
-//コード名表示
-var show_result = function(chords)
+const show_chords = (chords) =>
 {
     $("#result").text("");
 
-    var colorcode = ["#f00", "#a00", "#800", "#600", "#300", "#000"];
+    const colorcode = ["#f00", "#a00", "#800", "#600", "#300", "#000"];
 
-    chords.forEach(function(chord) {
+    chords.forEach(chord => {
         var $li = $("<li>").appendTo("#result").text(chord.name).css({
             "font-size": (140 - chord.comp * 10) + "%",
             "color": colorcode[chord.comp],
@@ -176,36 +42,125 @@ var show_result = function(chords)
     });
 }
 
-// UIからtonesをつくる
-var pftone = function()
-{
-    location.href = "#pf2c."
-        + $(".keyboard.selected").map(function(){ return $(this).attr("name"); })
-        .get().sort().join("");
+const is_sharp = () => {
+    const sharp = $(".accidental").hasClass("sharp");
+    $(".accidental").val(sharp ? "[#]/b" : "#/[b]");
+    return sharp;
+};
 
+p2c.show_chords = show_chords;
+p2c.hash = (hash) => {
+    if (hash == undefined) {
+        location.href = "#p2c="
+            + $(".keyboard.selected").map(function(){ return $(this).attr("name"); })
+            .get().sort().join("");
+        return;
+    }
+
+    hash.split(".").forEach(key => {
+        if (key == "b") {
+            $(".accidental").removeClass("sharp");
+            return;
+        }
+        if (key.match(/^([123][0-9ab])+$/)) {
+            $(".keyboard").removeClass("selected");
+            (key.match(/(..)/g) || []).forEach(v => {
+                $(".keyboard[name=" + v + "]").addClass("selected");
+            });
+        }
+    });
+};
+
+p2c.tone = () => {
     if ($(".keyboard.selected").length < 2) return [];
-
     return $(".keyboard.selected").map(function(){ return $(this).attr("name"); })
         .get().sort().map(tone => parseInt("0x" + tone, 16) % 0x10);
 };
 
-// UIからtonesをつくる
-var gttone = function()
+p2c.event = () => {
+    $(".keyboard").click(function(){
+        let id = $("#tab li.select").attr("id");
+        if (id != "p2c") $("#p2c").click();
+        var $obj = $(this);
+        if ($obj.hasClass("selected")) {
+            $obj.removeClass("selected");
+        } else {
+            $obj.addClass("selected");
+        }
+        p2c.hash();
+    });
+};
+
+p2c.draw = () => {
+    $(".piano, #outchord").show();
+    const chords = chordname(p2c.tone(), is_sharp());
+    return p2c.show_chords(chords);
+};
+
+p2c.reset = () => {
+    $(".keyboard.selected").removeClass("selected");
+};
+
+
+g2c.show_chords = show_chords;
+
+g2c.hash = function(hash)
 {
-    var fretpos = [0,0,0,0,0,0];
+    if (hash == undefined) {
+        let fret = $(".fret.selected, .open.selected").map(function(){
+            return $(this).attr("name");
+        }).get().reduce((fret, v) => {
+            const string = v[0] - 1;
+            const pos = parseInt(v[1]);
+            fret[string] = (0 < pos) ? pos : "x";
+            return fret;
+        }, [0,0,0,0,0,0]).join("");
+        
+        let params = [fret];
+        const ceja = $(".ceja.selected").attr("name");
+        const pos = parseInt($(".ceja:first").text());
+        if (ceja) params.push("c" + ceja);
+        if (pos > 1) params.push("p" + pos);
+        if (!$(".accidental").hasClass("sharp")) params.push("b");
+        
+        location.href = "#g2c=" + params.join(".");
+        return;
+    }
+
+    hash.split(".").forEach(key => {
+        if (key.length == 6) {
+            $(".fret,.ceja,.open").removeClass("selected");
+            key.split("").map((v,i) => (v == "x") ? [".open", (i * 10 + 10)] : [".fret", (i * 10 + 10 + v * 1)])
+                .forEach(obj => $(obj[0] + "[name=" + obj[1] + "]").addClass("selected"));
+        }
+        if (key.match(/^c[0-9]+/)) {
+            $(".ceja").removeClass("selected");
+            $(".ceja[name=" + key.slice(1) + "]")
+                .addClass("selected");
+        }
+        if (key == "b") {
+            $(".accidental").removeClass("sharp");
+        }
+        if (key.match(/^p[0-9]+/)) {
+            $(".ceja").each(function(i){
+                $(this).text(key.slice(1) * 1 + i);
+            });
+        }
+    });
+};
+
+g2c.tone = function()
+{
+    let fretpos = [0,0,0,0,0,0];
     $(".fret.selected, .open.selected").each(function(){
         var strg = $(this).attr("name").charAt(0);
         var fret = $(this).attr("name").charAt(1);
         fretpos[strg - 1] = (0 < fret) ? parseInt(fret) : -1;
     });
 
-    // 引数
-    location.href = "#gt2c." + fretpos.map(v => v == -1 ? "x" : v.toString()).join("");
-    location.href += ".c" + $(".ceja.selected").text() + ".p" + $(".ceja:first").text();
-
     // ツェーハの左側を押弦していたら開放扱い
     $(".ceja.selected").each(function(){
-        var ceja = parseInt($(this).attr("name"));
+        const ceja = parseInt($(this).attr("name"));
         fretpos = fretpos.map(pos => ((pos != -1) && (pos < ceja)) ? ceja : pos);
     });
 
@@ -213,28 +168,15 @@ var gttone = function()
     fretpos = fretpos.map(pos => (pos <= 0) ? pos : ($(".ceja:first").text() * 1 - 1 + pos));
 
     //音名に変換
-    var toneOpen = [4, 11, 7, 2, 9, 4]; //ギターの開放弦(EBGDAE)
+    const toneOpen = [4, 11, 7, 2, 9, 4]; //ギターの開放弦(EBGDAE)
     return fretpos.map((pos, i) => (pos == -1) ? -1 : ((pos + toneOpen[i]) % 12))
         .filter(tone => (tone != -1)).reverse();
 };
 
-//コード表示欄の更新
-var screenout = function()
-{
-    var chords = chordname(
-        ($("#tab li.select").attr("id") == "gt") ? gttone() : pftone(),
-        $(".accidental").hasClass("sharp")
-    );
-    show_result(chords);
-};
-
-
-//フレット表示欄の更新
-var screenout_fret = function()
-{
+g2c.draw = () => {
     var $ceja = $(".ceja.selected");
 
-    var ceja = ($ceja.length == 0) ? 0 : $ceja.attr("name");
+    const ceja = ($ceja.length == 0) ? 0 : $ceja.attr("name");
     $(".fret").text("").each(function(){
         var strg = $(this).attr("name").charAt(0);
         var fret = $(this).attr("name").charAt(1);
@@ -253,58 +195,20 @@ var screenout_fret = function()
             $(this).text("O");
     });
     $("<div>").addClass("strings").appendTo(".open");
-    screenout();
+
+    $(".guitar, #outchord").show();
+    const chords = chordname(g2c.tone(), is_sharp());
+    g2c.show_chords(chords);
 };
 
 
-// pf2c・gt2cのUIイベントハンドラ
-$(function() {
-    $("#tab li").click(function() {
-        var id = $(this).attr("id");
-        $(".content_wrap").hide();
-        $("#tab li").removeClass('select');
-        $(this).addClass('select');
-        if (id == "pf") $(".piano, #outchord").show();
-        if (id == "gt") $(".guitar, #outchord").show();
-        if (id == "ch2pf") $(".piano, #inchord").show();
-        if (id == "ch2gt") $(".gtform, #inchord").show();
-        screenout_fret();
-    }).filter(".select").click();
-    
-    $(".reset").click(function(){
-        if ($("#tab li.select").attr("id") === "pf") {
-            $(".keyboard.selected").removeClass("selected");
-            location.href = "#pf";
-        } else {
-            $(".fret, .open, .ceja").removeClass("selected");
-            $(".ceja").each(function(){ $(this).text($(this).attr("name")); });
-            location.href = "#gt";
-        }
-        screenout_fret();
-    });
-    
-    $(".accidental").click(function(){
-        var is_sharp = !($(this).hasClass("sharp"))
-        if (is_sharp)
-            $(this).addClass("sharp");
-        else
-            $(this).removeClass("sharp");
-        
-        $(this).val(is_sharp ? "[#]/b" : "#/[b]");
-        if (!is_sharp) location.href += ";flat";
-        screenout();
-    });
-    
-    $(".keyboard").click(function(){
-        var $obj = $(this);
-        if($obj.hasClass("selected") ){
-            $obj.removeClass("selected");
-        } else {
-            $obj.addClass("selected");
-        }
-        screenout();
-    });
 
+g2c.reset = () => {
+    $(".fret, .open, .ceja").removeClass("selected");
+    $(".ceja").each(function(){ $(this).text($(this).attr("name")); });
+};
+
+g2c.event = () => {
     $(".fret, .open").click(function(){
         var $ceja = $(".ceja.selected");
         var ceja = ($ceja.length == 0) ? 0 : $ceja.attr("name");
@@ -316,23 +220,295 @@ $(function() {
         } else {
             $(this).removeClass("selected");
         }
-        screenout_fret();
+        g2c.hash();
     });
+    
     $(".ceja").click( function(){
         var ceja = $(".ceja.selected").attr("name");
         var is_set = !$(this).hasClass("selected");
         $(".ceja").removeClass("selected");
         if (is_set) $(this).addClass("selected");
-        screenout_fret();
+        g2c.hash();
     });
+    
     $(".plus").click(function(){
         if ($(".ceja:last").text() * 1 >= 22) return;
         $(".ceja").each(function(){ $(this).text($(this).text() * 1 + 1); });
-        screenout();
+        g2c.hash();
     });
+    
     $(".minus").click(function(){
         if ($(".ceja:first").text() * 1 <= 1) return;
         $(".ceja").each(function(){ $(this).text($(this).text() * 1 - 1); });
-        screenout();
+        g2c.hash();
     });
+};
+
+c2p.reset = () => {
+    $("#inchord :checkbox").prop("checked", false);
+};
+
+c2p.hash = (hash) => {
+    if (hash == undefined) {
+        location.href = "#" + $("#tab li.select").attr("id") + "=" + $("#chordname").val();
+        return;
+    }
+
+    hash.split(".").forEach(key => {
+        if (key == "b") {
+            $(".accidental").removeClass("sharp");
+            return;
+        }
+        $("#chordname").val(key);
+    });
+
+    c2p.name2check();
+};
+
+c2p.event = () => {
+    $("#chordname").keydown(function(e) {
+        if (e.keyCode != 13) return;
+        c2p.hash();
+    });
+
+    $("#inchord :checkbox, #inchord select").change(function() {
+        var val = $(this).parent().text().split("/").shift().trim();
+
+        // 排他処理
+        if ($(this).prop("checked")) {
+            var list = $("#inchord label").map(function(){ return $(this).text(); }).get()
+                .map(key => key.split("/").shift().trim());
+
+            [["+5","-5","dim"],
+             ["+5","-5","omit5"],
+             ["+5","(-13)"],
+             ["-5","(+11)"],
+             ["m","(+9)"],
+             ["m", "omit3", "sus4", "sus2"],
+             ["(11)", "sus4"],
+             ["(13)", "6"],
+             ["m", "dim"],
+             ["6","M7","7"]].forEach(function(exclusives) {
+                 if (exclusives.indexOf(val) < 0) return;
+
+                 exclusives.forEach(function(form) {
+                     if (list.indexOf(form) < 0) return;
+                     $("#inchord :checkbox").eq(list.indexOf(form)).prop("checked", false);
+                 });
+             });
+            $(this).prop("checked", true);
+        }
+
+        let ret = c2p.check2name();
+        c2p.hash();
+    });
+
+};
+
+// 命名およびretオブジェクトの生成
+c2p.check2name = () => {
+    const diffform = {"m": "min", "aug": "+5", "M7":"maj7"};
+    var ret = {root:0, triad: "", tetrad: "", tensions: [], onroot: -1};
+    ret.root = pitchclass($("#root option:selected").text());
+    var val = $("#root option:selected").text();
+
+    $("#inchord :checkbox:checked").each(function() {
+        var n = $("#inchord :checkbox").index(this)
+        var key = $(this).parent().text().split("/").shift().trim();
+        if (key == "on") {
+            var onrootkey = $("#onroot option:selected").text();
+            ret.onroot = pitchclass(onrootkey);
+            if (ret.onroot == ret.root) {
+                ret.onroot = -1;
+            } else {
+                val += " (on " + onrootkey + ")";
+            }
+            return;
+        }
+        val += key;
+        if (diffform[key]) key = diffform[key];
+
+        if (n < 2) ret.triad = key;
+        else if (n < 5) ret.tetrad = key;
+        else ret.tensions.push(key);
+    });
+
+    $("#chordname").val(val);
+    return ret;
+};
+
+const ignored_chordname = (ignored) => {
+    if (!ignored) {
+        return $("#ignored").hide();
+    }
+    $("#ignored").show();
+    $("#ignoredstr").text(ignored);
+};
+
+c2p.draw = (struct) => {
+    $(".piano, #inchord").show();
+    $(".keyboard").removeClass("selected");
+    var tones = name2tones(struct.triad, struct.tetrad, struct.tensions);
+    var onroot = struct.onroot == -1 ? struct.root : struct.onroot;
+    
+    let keynames = tones.map((reltone) => {
+        if (reltone < 0) return;
+        var tone = reltone + struct.root;
+        if (tone % 12 == onroot % 12) return;
+        if (tone < onroot) tone += 12;
+        if (24 < tone) tone -= 12;
+        return (parseInt(tone / 12) + 1).toString(16) + (tone % 12).toString(16);
+    });
+    
+    keynames.push("1" + (onroot % 12).toString(16));
+    keynames.forEach(name => {
+        if (name) $(".keyboard[name=" + name + "]").addClass("selected");
+    });
+    ignored_chordname(struct.ignored);
+};
+
+c2p.name2check = () => {
+
+    let $this = $("#chordname");
+    var ret = c2t($this.val());
+    if (!ret) {
+        var val = $("#root option:selected").text() + $this.val()
+        $this.val(val);
+        ret = c2t(val);
+    }
+
+    $("#tab li.select").attr("id") == "c2p" ? c2p.draw(ret) : c2g.draw(ret);
+
+    // namefactorをformに展開
+    const extract_form = function(root, onroot, namefactors)
+    {
+        var list = $("#inchord label").map(function(){ return $(this).text(); }).get()
+            .map(key => key.split("/").shift().trim());
+        $("#inchord :checkbox").prop("checked", false);
+        const diffform = {"min":"m", "aug": "+5", "maj7":"M7"};
+        
+        namefactors.forEach((name) => {
+            if (!name) return;
+            var form = name;
+            if (diffform[name]) form = diffform[name];
+            
+            if (list.indexOf(form) != -1) {
+                $("#inchord :checkbox").eq(list.indexOf(form)).prop("checked", true);
+                return;
+            }
+            var val = form;
+            
+            //テンション
+            var interval = interval2semitone(val);
+            if (interval < 0) return;
+            // (c2t内でやるべき)
+            var form = { 13: "(-9)", 14: "(9)", 15: "(+9)",
+                         17: "(11)", 18: "(+11)",
+                         20: "(-13)", 21: "(13)",
+                         6: "-5",  8: "+5"}[interval];
+            if(list.indexOf(form) == -1) return;
+            $("#inchord :checkbox").eq(list.indexOf(form)).prop("checked", true);
+        });
+        
+        $("#root option").eq(root).prop("selected", true);
+        
+        if (onroot != -1) {
+            $("#onroot option").eq(onroot).prop("selected", true);
+            $("#inchord :checkbox:last").prop("checked", true);
+        }
+    };
+
+    ret.tensions.push(ret.triad);
+    ret.tensions.push(ret.tetrad);
+    extract_form(ret.root, ret.onroot, ret.tensions);
+};
+
+c2g.reset = c2p.reset;
+c2g.hash = c2p.hash;
+c2g.draw = (struct) => {
+    let tones = name2tones(struct.triad, struct.tetrad, struct.tensions)
+        .sort((a, b) => (a - b))
+        .map(tone => (tone + struct.root + 3) % 12);
+    if (struct.onroot != -1)
+        tones.unshift((struct.onroot + 3) % 12);
+
+    $(".gtform, #inchord").show();
+    $("#chforms").html("");
+
+    tri(tones);
+    ignored_chordname(struct.ignored);
+};
+
+
+
+$(function() {
+    // モード切替
+    $("#tab li").click(function() {
+        extract_hash("#" + $(this).attr("id") + "=");
+    });
+
+    // リセット
+    $(".reset").click(function(){
+        ui.reset();
+        extract_hash();
+    });
+
+    // 臨時記号
+    $(".accidental").click(function(){
+        if ($(this).hasClass("sharp"))
+            $(this).removeClass("sharp");
+        else
+            $(this).addClass("sharp");
+        extract_hash();
+    });
+
+    ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].forEach(function(tone) {
+        $("<option>").text(tone).appendTo("#root, #onroot");
+    });
+
+    p2c.event();
+    g2c.event();
+    c2p.event();
+
+    // ハッシュのDOM展開
+    const extract_hash = (hash) => {
+        if (!hash) hash = "#" + $("#tab li.select").attr("id") + "=";
+
+        let param = decodeURI(hash.slice(1)).split("=");
+        const id = param.shift();
+        const key = param.shift();
+
+        $(".content_wrap").hide();
+        $("#tab li").removeClass('select');
+        $("#" + id).addClass('select');
+
+        if (id == "p2c") {
+            ui = p2c;
+            p2c.hash(key);
+            p2c.hash();
+            p2c.draw();
+            return;
+        }
+
+        if (id == "c2p") {
+            ui = c2p;
+            ui.hash(key);
+            ui.hash();
+            return;
+        }
+
+        if (id == "c2g") {
+            ui = c2g;
+            ui.hash(key);
+            ui.hash();
+            return;
+        }
+        ui = g2c;
+        g2c.hash(key);
+        g2c.hash();
+        g2c.draw();
+    };
+
+    window.addEventListener("hashchange", () => { extract_hash(location.hash); }, false);
+    extract_hash(location.hash);
 });

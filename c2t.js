@@ -1,5 +1,163 @@
+// コード名を返す
+const chordname = function(tones, is_sharp)
+{
+    let complex = 0; //複雑さ
+
+    //音名
+    const tonename = function(tone)
+    {
+        tone %= 12;
+        if (is_sharp)
+            return ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"][tone];
+        else
+            return ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"][tone];
+    };
+
+    //音程配列 bool[12]
+    const relatives = function(root, tones)
+    {
+        return tones.reduce((ret, v) => {
+            ret[(v - root + 12) % 12] = true;
+            return ret;
+        }, []);
+    };
+
+    //3度と5度を取り出す(なんかエレガントな書き方ないか...?)
+    const factorize = function(incl)
+    {
+        var triad = {};
+
+        //m7とM7が同時に鳴っている和音はコード化できない
+        if (incl[10] && incl[11]) return {};
+
+        if (incl[4]) {        // ------------ M3 based
+            triad.third = 4;
+            if　(incl[7]) {          // M3 + P5
+                triad.fifth = 7;
+            } else if(incl[8]) {  // M3 + aug5
+                triad.fifth = 8;
+            } else if(incl[6]) {  // M3 + dim5 (複雑)
+                triad.fifth = 6;
+                complex += 3;
+            } else {
+                triad.opt = "omit5";
+                complex += 3;
+            }
+        } else if (incl[3]) { // -------------- m3 based
+            triad.third = 3;
+            if (incl[7]) {         // m3 + P5
+                triad.fifth = 7;
+            } else if(incl[6]) {  // m3 + dim5
+                triad.fifth = 6;
+            } else if(incl[8]) {  // m3 + aug5 (複雑)
+                triad.fifth = 8;
+                complex += 3;
+            } else {
+                triad.opt = "omit5";
+                complex += 3;
+            }
+        } else if (incl[7]) { // ------------- P5 based
+            triad.fifth = 7;
+            if (incl[5]) {              // P5 + P4
+                triad.opt = "sus4";
+                complex++;
+                incl[5] = false;
+            } else {
+                triad.opt = "omit3";
+                complex += 3;
+            }
+        }
+
+        incl[triad.third] = false;
+        incl[triad.fifth] = false;
+
+        return triad;
+    };
+
+    //三和音と残りの構成音をコード名にする
+    const assemblechord = function(triad, incl)
+    {
+        var tension = [];
+        var str_triad = "";
+        var str_7th = "";
+        var str_5th = "";
+        
+        if (triad.third == 3) str_triad = "m";
+        if (triad.third == 4) str_triad = "";
+        if (triad.fifth == 6) str_5th = "-5";
+        if (triad.fifth == 8) str_5th = "+5";
+        if (incl[11]) str_7th = "M7";
+        if (incl[10]) str_7th = "7";
+        
+        if (incl[1]) tension.push("-9");
+        if (incl[2]) tension.push("9");
+        if (incl[3]) tension.push("+9");
+        if (incl[5]) tension.push("11");
+        if (incl[6]) tension.push("+11");
+        if (incl[8]) tension.push("-13");
+
+        // 6th or 13th(7th,±5thがある場合のみ)
+        if (incl[9]) {
+            if (str_7th || str_5th)
+                tension.push("13");
+            else
+                str_7th = "6";
+        }
+        
+        // 慣用句 m-5(13) -> dim7
+        if ((triad.third == 3) && (triad.fifth == 6) && incl[9] && !str_7th){
+            str_triad = "dim";
+            str_7th = "7";
+            str_5th = "";
+            tension.pop();
+        }
+
+        // テンションが2個以上あるときは複雑
+        if (2 <= tension.length) complex += tension.length - 1;
+        
+        return str_triad
+            + str_7th
+            + str_5th
+            + (tension.length ? "(" + tension.join(",") + ")" : "")
+            + (triad.opt ? triad.opt: "");
+    };
+
+    //tones[] からコード名をつける
+    return function(tones)
+    {
+        var originroot = tones[0];
+
+        //重複音の除去
+        tones = tones.filter((tone, i, self) => self.indexOf(tone) == i);
+
+        //転回形を考える
+        return tones.map(root => {
+            complex = 0;
+
+            // ルートからの音程クラス配列を得る
+            var includings = relatives(root, tones);
+ 
+            // 3度と5度を取り出す
+            var triad = factorize(includings);
+            if (!triad.third && !triad.fifth) return;
+
+            // 命名する
+            var fullname = tonename(root) + assemblechord(triad, includings);
+
+            // オンコード
+            if (root != originroot) {
+                fullname += " (on " + tonename(originroot) + ")";
+                complex++;
+            }
+
+            return {name:fullname, comp:complex};
+
+        }).filter(a => a).sort((a, b) => (a.comp - b.comp));
+    }(tones);
+};
+
 //コード名文字列解釈
-var c2t = function(str) {
+const c2t = function(str) {
     var origin = str;
     str = str.split(" ").join("");
 
@@ -85,15 +243,15 @@ var c2t = function(str) {
 };
 
 //要素に切ったものをtones化する
-var name2tones = function(triad, seventh, tensions)
+const name2tones = function(triad, seventh, tensions)
 {
-     var pat = {
+    const pat = {
         "maj": [4, 7],
         "min": [3, 7],
         "dim": [3, 6],
         "aug": [4, 8]
     };
-    var ret = triad ? pat[triad] : pat.maj;
+    let ret = triad ? pat[triad] : pat.maj;
     if (seventh == "6") {
         ret.push(interval2semitone("6"));
     }
@@ -102,14 +260,14 @@ var name2tones = function(triad, seventh, tensions)
     }
     //["maj","7"]は"maj7"扱い, ["dim","7"]は"dim7"扱い, ["","7"]は"min7"扱い
     if (seventh == "7") {
-        var c = interval2semitone("7");
+        let c = interval2semitone("7");
         if (triad == "maj") ret.push(c);
         else if (triad == "dim") ret.push(c - 2);
         else ret.push(c - 1);
     }
 
     if (!tensions) tensions = [];
-    tensions.forEach(function(val) {
+    tensions.forEach(val => {
         val = val.toLowerCase();
         if (val === "aug") ret[1] = interval2semitone("+5");;
         if (val.indexOf("sus4") == 0) ret[0] = interval2semitone("4");
@@ -118,7 +276,7 @@ var name2tones = function(triad, seventh, tensions)
         if (val.indexOf("omit5") == 0) ret[1] = -1;
 
         //テンション
-        var interval = interval2semitone(val);
+        const interval = interval2semitone(val);
         if (interval < 0) return;
 
         //5度を書き換え
@@ -132,211 +290,35 @@ var name2tones = function(triad, seventh, tensions)
     return ret;
 };
 
-// namefactorをformに展開
-var extract_form = function(root, onroot, namefactors)
-{
-    var list = $("#inchord label").map(function(){ return $(this).text(); }).get()
-        .map(key => key.split("/").shift().trim());
-    $("#inchord :checkbox").prop("checked", false);
-    var diffform = {"min":"m", "aug": "+5", "maj7":"M7"};
-
-    namefactors.forEach(function(name) {
-        if (!name) return;
-        console.log(name);
-        var form = name;
-        if (diffform[name]) form = diffform[name];
-        
-        if (list.indexOf(form) != -1) {
-            $("#inchord :checkbox").eq(list.indexOf(form)).prop("checked", true);
-            return;
-        }
-        var val = form;
-
-        //テンション
-        var interval = interval2semitone(val);
-        if (interval < 0) return;
-        // (c2t内でやるべき)
-        var form = { 13: "(-9)", 14: "(9)", 15: "(+9)",
-                     17: "(11)", 18: "(+11)",
-                     20: "(-13)", 21: "(13)",
-                     6: "-5",  8: "+5"}[interval];
-        if(list.indexOf(form) == -1) return;
-        $("#inchord :checkbox").eq(list.indexOf(form)).prop("checked", true);
-    });
-
-    $("#root option").eq(root).prop("selected", true);
-
-    if (onroot != -1) {
-        $("#onroot option").eq(onroot).prop("selected", true);
-        $("#inchord :checkbox:last").prop("checked", true);
-    }
-
-};
-
 //音名(C-B)からピッチクラス(0-11)を返す
-var pitchclass = function(tonename) {
-    var ret = ("C D EF G A B").indexOf(tonename.charAt(0));
+const pitchclass = (tonename) => {
+    let ret = ("C D EF G A B").indexOf(tonename.charAt(0));
     if (tonename.charAt(1) == "#") ret++;
     if (tonename.charAt(1) == "b") ret--;
     return (ret + 12) % 12;
 };
 
 //音程[度]から音程クラスを返す
-var interval2semitone = function(str)
+const interval2semitone = (str) =>
 {
-    var val = str.split("add").join("")
+    const val = str.split("add").join("")
         .split("(").join("")
         .split("b").join("-").split("#").join("+").trim();
 
-    var interval = parseInt(val.split("-").join("").split("+").join(""));
+    const interval = parseInt(val.split("-").join("").split("+").join(""));
     if (isNaN(interval)) return -1;
 
-    var octave = parseInt((interval - 1) / 7);
-    var pitch = [0, 2, 4, 5, 7, 9, 11][(interval - 1) % 7];
+    const octave = parseInt((interval - 1) / 7);
+    let pitch = [0, 2, 4, 5, 7, 9, 11][(interval - 1) % 7];
     if (val.indexOf("+") != -1) pitch++;
     if (val.indexOf("-") != -1) pitch--;
 
     return pitch + 12 * octave;
-
-    if (0) {
-        if (val == "9") return 14;
-        if (val == "11") return 17;
-        if (val == "13") return 21;
-        if (val == "#5") return 8;
-        if (val == "#9") return 15;
-        if (val == "#11") return 18;
-        if (val == "-5") return 6;
-        if (val == "-9") return 13;
-        if (val == "-13") return 20;
-
-        return -1;
-    }
 };
 
-// c2gt・c2pfのUIイベントハンドラ
-$(function() {
-    ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].forEach(function(tone) {
-        $("<option>").text(tone).appendTo("#root, #onroot");
-    });
-
-
-    $("#inchord :checkbox, #inchord select").change(function() {
-        var val = $(this).parent().text().split("/").shift().trim();
-
-        //排他処理
-        if ($(this).prop("checked")) {
-            var list = $("#inchord label").map(function(){ return $(this).text(); }).get()
-                .map(key => key.split("/").shift().trim());
-
-            [["+5","-5","dim"],
-             ["+5","-5","omit5"],
-             ["+5","(-13)"],
-             ["-5","(+11)"],
-             ["m","(+9)"],
-             ["m", "omit3", "sus4", "sus2"],
-             ["(11)", "sus4"],
-             ["(13)", "6"],
-             ["m", "dim"],
-             ["6","M7","7"]].forEach(function(exclusives) {
-                 if (exclusives.indexOf(val) < 0) return;
-
-                 exclusives.forEach(function(form) {
-                     if (list.indexOf(form) < 0) return;
-                     $("#inchord :checkbox").eq(list.indexOf(form)).prop("checked", false);
-                 });
-             });
-            $(this).prop("checked", true);
-        }
-
-        var diffform = {"m": "min", "aug": "+5", "M7":"maj7"};
-
-        var ret = {root:0, triad: "", tetrad: "", tensions: [], onroot: -1};
-        ret.root = pitchclass($("#root option:selected").text());
-
-        var val = $("#root option:selected").text();
-        
-        $("#inchord :checkbox:checked").each(function() {
-            var n = $("#inchord :checkbox").index(this)
-            var key = $(this).parent().text().split("/").shift().trim();
-            
-            if (key == "on") {
-                var onrootkey = $("#onroot option:selected").text();
-                ret.onroot = pitchclass(onrootkey);
-                if (ret.onroot == ret.root) {
-                    ret.onroot = -1;
-                } else {
-                    val += " (on " + onrootkey + ")";
-                }
-                return;
-            }
-            
-            val += key;
-            if (diffform[key]) key = diffform[key];
-
-            if (n < 2) ret.triad = key;
-            else if (n < 5) ret.tetrad = key;
-            else ret.tensions.push(key);
-        });
-        $("#chordname").val(val);
-        location.href = "#" + $("#tab li.select").attr("id") + "." + val;
-        analyze(ret);
-    });
-
-    $("#chordname").keydown(function(e) {
-        if (e.keyCode != 13) return;
-        var ret = c2t($(this).val());
-        if (!ret) {
-            var val = $("#root option:selected").text() + $(this).val()
-            $(this).val(val);
-            ret = c2t(val);
-        }
-        location.href = "#" + $("#tab li.select").attr("id") + "." + $(this).val();
-        analyze(ret);
-        ret.tensions.push(ret.triad);
-        ret.tensions.push(ret.tetrad);
-        extract_form(ret.root, ret.onroot, ret.tensions);
-    });
-
-    var analyze = function(ret) {
-        $(".keyboard").removeClass("selected");
-        var tones = name2tones(ret.triad, ret.tetrad, ret.tensions);
-        var onroot = ret.onroot == -1 ? ret.root : ret.onroot;
-        console.log(tones);
-
-        if ($("#ch2pf").hasClass("select")) {
-            tones.forEach(function(reltone) {
-                if(reltone < 0) return;
-                var tone = reltone + ret.root;
-                if (tone % 12 == onroot % 12) return;
-                if (tone < onroot) tone += 12;
-                if (24 < tone) tone -= 12;
-                var name = (parseInt(tone / 12) + 1).toString(16) + (tone % 12).toString(16);
-
-                $(".keyboard[name=" + name + "]").addClass("selected");
-            });
-            var name = "1" + (onroot % 12).toString(16);
-            $(".keyboard[name=" + name + "]").addClass("selected");
-        }
-        
-        if ($("#ch2gt").hasClass("select")) {
-            $("#chforms").html("");
-            var abtones = tones.sort((a, b) => (a - b)).map(tone => (tone + ret.root + 3) % 12);
-            if (ret.onroot != -1)
-                abtones.unshift((ret.onroot + 3) % 12);
-            tri(abtones);
-        }
-        
-        if (ret.ignored) {
-            $("#ignored").show();
-            $("#ignoredstr").text(ret.ignored);
-        } else {
-            $("#ignored").hide();
-        }
-    };
-});
 
 /*
-<c2tのalgorithm>
+<c2t:algorithm>
 (1)ルートを取り除く
 (2)トライアド部を取り除く
 M,m,Maj,maj,dim,sus,aug
@@ -349,7 +331,6 @@ omit3,5
 -5,+5 カッコつきでも意味同じ
 aug (2)であった場合はエラー
 4,2,カッコつきはエラー
-
 */
 
 var unittest = function(){
@@ -398,4 +379,3 @@ var unittest = function(){
     c2t("Cadd9omit3");
 };
 
-unittest();

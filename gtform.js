@@ -1,19 +1,14 @@
-var gt_open = [7, 0, 5, 10, 2, 7];
-var gt_octave = [0, 1, 1, 1, 2, 2];
+const gt_open = [7, 0, 5, 10, 2, 7];
+const gt_octave = [0, 1, 1, 1, 2, 2];
 
-//構成音の押弦位置を返す
-var gt_mapper = function(notes)
+// 構成音の押弦位置を返す
+const gt_mapper = function(notes)
 {
-    var postable = [];
-    return notes.map(function(note) {
-        return gt_open.map(open => (12 + note - open) % 12);
-    });
-
-    return postable;
+    return notes.map(note => gt_open.map(open => (12 + note - open) % 12));
 }
 
 // 全通りの押弦パタンを検出する
-var make_pattern = function(postable) {
+const make_pattern = function(postable) {
 
     var n = 0;
     var sol = [];
@@ -25,7 +20,7 @@ var make_pattern = function(postable) {
             if (!min || val < min) min = val;
         });
         return (max - min <= 3);
-    }
+    };
 
     var select_rest = function(index, ret) {
         postable.forEach(function(val) {
@@ -40,7 +35,6 @@ var make_pattern = function(postable) {
             }
             ret.pop();
         });
-        
     };
 
     
@@ -52,14 +46,13 @@ var make_pattern = function(postable) {
         ret.push(val);
 
         select_rest(index + 1, ret);
-        
     });
 
     return sol;
 }
 
 // 押弦効率を評価する
-var eval_pattern = function(pattern, tonesize, ceja) {
+const eval_pattern = function(pattern, tonesize, ceja) {
     var c = 0;
     var check_all_in_3 = function(ret) {
         var max = -1;
@@ -70,7 +63,7 @@ var eval_pattern = function(pattern, tonesize, ceja) {
             if (min == -1 || val < min) min = val;
         });
         return (max - min >= 3);
-    }
+    };
 
     var fingers = function(ret) {
         var fn = 0;
@@ -159,7 +152,7 @@ if(0) {
 }
 
 // 結果表示
-var tri = function(tones) {
+const tri = function(tones) {
     var result = [];
     tones = tones.filter((tone, i, self) => self.indexOf(tone) == i);
 
@@ -170,7 +163,7 @@ var tri = function(tones) {
         result.push([val, c]);
     });
 
-    result.sort(function(a,b) {
+    result.sort((a,b) => {
         if (a[1] - b[1] != 0) return a[1] - b[1];
 
         var avg = function(arr) {
@@ -185,14 +178,14 @@ var tri = function(tones) {
         }
         return avg(a[0]) - avg(b[0]);
     })
-        .forEach(function(ret) {
+        .forEach((ret) => {
             if (ret[1] < 8)
                 draw(ret[0], ret[1]);
-            console.log(ret[0], ret[1]);
+            //console.log(ret[0], ret[1]);
         });
 };
 
-var draw = function(flet, point) {
+const draw = function(flet, point) {
     var first = $("#chord_template");
     var chord = first.clone(true).appendTo("#chforms").show();
     //var strings = chord.find(".s");
