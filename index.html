@@ -4,7 +4,6 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <title>Chord Namer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script type="text/javascript" src="../../jquery-2.1.4.js"></script>
 <script type="text/javascript" src="chord_name.js"></script>
 <script type="text/javascript" src="c2t.js"></script>
 <script type="text/javascript" src="gtform.js"></script>
@@ -32,110 +31,110 @@
 </div>
 <div class="piano content_wrap">
  <div class="white-key-set">
-    <div class="keyboard selected" name="10"></div>
-    <div class="keyboard" name="12"></div>
-    <div class="keyboard selected" name="14"></div>
-    <div class="keyboard" name="15"></div>
-    <div class="keyboard selected" name="17"></div>
-    <div class="keyboard" name="19"></div>
-    <div class="keyboard" name="1b"></div>
-    <div class="keyboard" name="20"></div>
-    <div class="keyboard" name="22"></div>
-    <div class="keyboard" name="24"></div>
-    <div class="keyboard" name="25"></div>
-    <div class="keyboard" name="27"></div>
-    <div class="keyboard" name="29"></div>
-    <div class="keyboard" name="2b"></div>
-    <div class="keyboard" name="30"></div>
+    <div class="keyboard selected" id="k10"></div>
+    <div class="keyboard" id="k12"></div>
+    <div class="keyboard selected" id="k14"></div>
+    <div class="keyboard" id="k15"></div>
+    <div class="keyboard selected" id="k17"></div>
+    <div class="keyboard" id="k19"></div>
+    <div class="keyboard" id="k1b"></div>
+    <div class="keyboard" id="k20"></div>
+    <div class="keyboard" id="k22"></div>
+    <div class="keyboard" id="k24"></div>
+    <div class="keyboard" id="k25"></div>
+    <div class="keyboard" id="k27"></div>
+    <div class="keyboard" id="k29"></div>
+    <div class="keyboard" id="k2b"></div>
+    <div class="keyboard" id="k30"></div>
  </div>
  <div class="black-key-set">
-    <div class="keyboard" name="11"></div>
-    <div class="keyboard" name="13"></div>
-    <div class="keyboard" name="nameless" style="visibility:hidden;"></div>
-    <div class="keyboard" name="16"></div>
-    <div class="keyboard" name="18"></div>
-    <div class="keyboard" name="1a"></div>
-    <div class="keyboard" name="nameless" style="visibility:hidden;"></div>
-    <div class="keyboard" name="21"></div>
-    <div class="keyboard" name="23"></div>
-    <div class="keyboard" name="nameless" style="visibility:hidden;"></div>
-    <div class="keyboard" name="26"></div>
-    <div class="keyboard" name="28"></div>
-    <div class="keyboard" name="2a"></div>
-    <div class="keyboard" name="nameless" style="visibility:hidden;"></div>
+    <div class="keyboard" id="k11"></div>
+    <div class="keyboard" id="k13"></div>
+    <div class="keyboard" id="knameless" style="visibility:hidden;"></div>
+    <div class="keyboard" id="k16"></div>
+    <div class="keyboard" id="k18"></div>
+    <div class="keyboard" id="k1a"></div>
+    <div class="keyboard" id="knameless" style="visibility:hidden;"></div>
+    <div class="keyboard" id="k21"></div>
+    <div class="keyboard" id="k23"></div>
+    <div class="keyboard" id="knameless" style="visibility:hidden;"></div>
+    <div class="keyboard" id="k26"></div>
+    <div class="keyboard" id="k28"></div>
+    <div class="keyboard" id="k2a"></div>
+    <div class="keyboard" id="knameless" style="visibility:hidden;"></div>
  </div>
 </div>
 <div class="content_wrap guitar">
  <table class="neck">
  <tbody><tr>
-    <td class="open" name="10"></td>
-    <td class="fret" name="11"></td>
-    <td class="fret" name="12"></td>
-    <td class="fret" name="13"></td>
-    <td class="fret" name="14"></td>
-    <td class="fret" name="15"></td>
-    <td class="fret" name="16"></td>
-    <td class="fret" name="17"></td>
+    <td class="open" id="g10"></td>
+    <td class="fret" id="g11"></td>
+    <td class="fret" id="g12"></td>
+    <td class="fret" id="g13"></td>
+    <td class="fret" id="g14"></td>
+    <td class="fret" id="g15"></td>
+    <td class="fret" id="g16"></td>
+    <td class="fret" id="g17"></td>
  </tr>
  <tr>
-    <td class="open" name="20"></td>
-    <td class="fret" name="21"></td>
-    <td class="fret" name="22"></td>
-    <td class="fret" name="23"></td>
-    <td class="fret selected" name="24"></td>
-    <td class="fret" name="25"></td>
-    <td class="fret" name="26"></td>
-    <td class="fret" name="27"></td>
+    <td class="open" id="g20"></td>
+    <td class="fret" id="g21"></td>
+    <td class="fret" id="g22"></td>
+    <td class="fret" id="g23"></td>
+    <td class="fret selected" id="g24"></td>
+    <td class="fret" id="g25"></td>
+    <td class="fret" id="g26"></td>
+    <td class="fret" id="g27"></td>
  </tr>
  <tr>
-    <td class="open" name="30"></td>
-    <td class="fret" name="31"></td>
-    <td class="fret" name="32"></td>
-    <td class="fret" name="33"></td>
-    <td class="fret" name="34"></td>
-    <td class="fret selected" name="35"></td>
-    <td class="fret" name="36"></td>
-    <td class="fret" name="37"></td>
+    <td class="open" id="g30"></td>
+    <td class="fret" id="g31"></td>
+    <td class="fret" id="g32"></td>
+    <td class="fret" id="g33"></td>
+    <td class="fret" id="g34"></td>
+    <td class="fret selected" id="g35"></td>
+    <td class="fret" id="g36"></td>
+    <td class="fret" id="g37"></td>
  </tr>
  <tr>
-    <td class="open" name="40"></td>
-    <td class="fret" name="41"></td>
-    <td class="fret" name="42"></td>
-    <td class="fret" name="43"></td>
-    <td class="fret" name="44"></td>
-    <td class="fret selected" name="45"></td>
-    <td class="fret" name="46"></td>
-    <td class="fret" name="47"></td>
+    <td class="open" id="g40"></td>
+    <td class="fret" id="g41"></td>
+    <td class="fret" id="g42"></td>
+    <td class="fret" id="g43"></td>
+    <td class="fret" id="g44"></td>
+    <td class="fret selected" id="g45"></td>
+    <td class="fret" id="g46"></td>
+    <td class="fret" id="g47"></td>
  </tr>
  <tr>
-    <td class="open" name="50"></td>
-    <td class="fret" name="51"></td>
-    <td class="fret" name="52"></td>
-    <td class="fret" name="53"></td>
-    <td class="fret" name="54"></td>
-    <td class="fret" name="55"></td>
-    <td class="fret" name="56"></td>
-    <td class="fret" name="57"></td>
+    <td class="open" id="g50"></td>
+    <td class="fret" id="g51"></td>
+    <td class="fret" id="g52"></td>
+    <td class="fret" id="g53"></td>
+    <td class="fret" id="g54"></td>
+    <td class="fret" id="g55"></td>
+    <td class="fret" id="g56"></td>
+    <td class="fret" id="g57"></td>
  </tr>
  <tr>
-    <td class="open selected" name="60"></td>
-    <td class="fret" name="61"></td>
-    <td class="fret" name="62"></td>
-    <td class="fret" name="63"></td>
-    <td class="fret" name="64"></td>
-    <td class="fret" name="65"></td>
-    <td class="fret" name="66"></td>
-    <td class="fret" name="67"></td>
+    <td class="open selected" id="g60"></td>
+    <td class="fret" id="g61"></td>
+    <td class="fret" id="g62"></td>
+    <td class="fret" id="g63"></td>
+    <td class="fret" id="g64"></td>
+    <td class="fret" id="g65"></td>
+    <td class="fret" id="g66"></td>
+    <td class="fret" id="g67"></td>
  </tr>
  <tr>
     <td class="minus">&lt;&lt;</td>
-    <td class="ceja" name="1">1</td>
-    <td class="ceja" name="2">2</td>
-    <td class="ceja selected" name="3">3</td>
-    <td class="ceja" name="4">4</td>
-    <td class="ceja" name="5">5</td>
-    <td class="ceja" name="6">6</td>
-    <td class="ceja" name="7">7</td>
+    <td class="ceja" id="c1">1</td>
+    <td class="ceja" id="c2">2</td>
+    <td class="ceja selected" id="c3">3</td>
+    <td class="ceja" id="c4">4</td>
+    <td class="ceja" id="c5">5</td>
+    <td class="ceja" id="c6">6</td>
+    <td class="ceja" id="c7">7</td>
     <td class="plus">&gt;&gt;</td>
  </tr>
  </tbody></table>

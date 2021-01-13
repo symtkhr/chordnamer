@@ -2,10 +2,8 @@ const gt_open = [7, 0, 5, 10, 2, 7];
 const gt_octave = [0, 1, 1, 1, 2, 2];
 
 // 構成音の押弦位置を返す
-const gt_mapper = function(notes)
-{
-    return notes.map(note => gt_open.map(open => (12 + note - open) % 12));
-}
+const gt_mapper = (notes) => notes.map(note => gt_open.map(open => (12 + note - open) % 12));
+
 
 // 全通りの押弦パタンを検出する
 const make_pattern = function(postable) {
@@ -152,12 +150,14 @@ if(0) {
 }
 
 // 結果表示
-const tri = function(tones) {
+const tri = function(tones, callback) {
+    if (!callback) callback = (a,b) => console.log(a,b);
+
     var result = [];
     tones = tones.filter((tone, i, self) => self.indexOf(tone) == i);
 
-    var flets = gt_mapper(tones);
-    var ret = make_pattern(flets);
+    var frets = gt_mapper(tones);
+    var ret = make_pattern(frets);
     ret.forEach(function(val) {
         var c = eval_pattern(val, tones.length);
         result.push([val, c]);
@@ -180,33 +180,8 @@ const tri = function(tones) {
     })
         .forEach((ret) => {
             if (ret[1] < 8)
-                draw(ret[0], ret[1]);
-            //console.log(ret[0], ret[1]);
+                callback(ret[0], ret[1]);
         });
-};
-
-const draw = function(flet, point) {
-    var first = $("#chord_template");
-    var chord = first.clone(true).appendTo("#chforms").show();
-    //var strings = chord.find(".s");
-    var min = -1;
-    flet.forEach(function(val, index) {
-        if (val <= 0) return;
-        if (min == -1 || val < min) min = val;
-    });
-
-    if (min != 0) chord.find(".min").html(min);
-    chord.find(".point").html(point);
-
-    flet.forEach(function(val, index) {
-        var $obj = $('<div class="s">').appendTo(chord);
-        if (val == -1)
-            $obj.css({"left": "0", "top": ((5 - index) * 7 - 3) + "px", "background-color":"transparent"}).html("X");
-        else if (val == 0)
-            $obj.css({"left": "0", "top": ((5 - index) * 7) + "px"});
-        else
-            $obj.css({"left": (12 * (val - min + 1)) + "px", "top": ((5 - index) * 7) + "px"});
-    });
 };
 
 /*

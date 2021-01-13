@@ -15,7 +15,15 @@ ui.c2pg.tone() -> {root:0, triad: "", tetrad: "", tensions: [], onroot: -1} と�
 ui.c2p.draw(tone) -> 上記オブジェクトをベースに描画(analyze)
 ui.c2g.draw(tone) -> 上記オブジェクトをベースに描画(analyze)
 
+<hashベースに書換>
+onload,tab click => domベース(hash書換)
+それ以外 => hashベース
+
 */
+const $id = (id) => document.getElementById(id);
+const $name = (name) => document.getElementsByName(name);
+const $c = (c) => document.getElementsByClassName(c);
+const $q = (query) => document.querySelectorAll(query);
 
 let p2c = {};
 let g2c = {};
@@ -25,26 +33,25 @@ let ui = g2c;
 
 const show_chords = (chords) =>
 {
-    $("#result").text("");
+    $id("result").innerText = "";
 
     const colorcode = ["#f00", "#a00", "#800", "#600", "#300", "#000"];
 
     chords.forEach(chord => {
-        var $li = $("<li>").appendTo("#result").text(chord.name).css({
-            "font-size": (140 - chord.comp * 10) + "%",
-            "color": colorcode[chord.comp],
-        });
+        let $li = document.createElement("li");
+        $id("result").appendChild($li);
+        $li.innerText = (chord.name);
+        $li.style.fontSize = (140 - chord.comp * 10) + "%";
+        $li.style.color = colorcode[chord.comp];
         if (chord.comp != chords[0].comp) return;
-        $li.css({
-            "font-weight": "bold",
-            "background-color": "#ecc"
-        });
+        $li.style.fontWeight = "bold";
+        $li.style.backgroundColor = "#ecc"
     });
-}
+};
 
 const is_sharp = () => {
-    const sharp = $(".accidental").hasClass("sharp");
-    $(".accidental").val(sharp ? "[#]/b" : "#/[b]");
+    const sharp = $c("accidental")[0].classList.contains("sharp");
+    $c("accidental")[0].value = (sharp ? "[#]/b" : "#/[b]");
     return sharp;
 };
 
@@ -52,53 +59,47 @@ p2c.show_chords = show_chords;
 p2c.hash = (hash) => {
     if (hash == undefined) {
         location.href = "#p2c="
-            + $(".keyboard.selected").map(function(){ return $(this).attr("name"); })
-            .get().sort().join("");
+            + [... $q(".keyboard.selected")].map($dom => $dom.id.slice(1))
+            .sort().join("");
         return;
     }
 
     hash.split(".").forEach(key => {
         if (key == "b") {
-            $(".accidental").removeClass("sharp");
+            $c("accidental")[0].classList.remove("sharp");
             return;
         }
         if (key.match(/^([123][0-9ab])+$/)) {
-            $(".keyboard").removeClass("selected");
-            (key.match(/(..)/g) || []).forEach(v => {
-                $(".keyboard[name=" + v + "]").addClass("selected");
-            });
+            [...$c("keyboard")].map($dom => $dom.classList.remove("selected"));
+            (key.match(/(..)/g) || []).map(v => $id("k" + v).classList.add("selected"));
         }
     });
 };
 
 p2c.tone = () => {
-    if ($(".keyboard.selected").length < 2) return [];
-    return $(".keyboard.selected").map(function(){ return $(this).attr("name"); })
-        .get().sort().map(tone => parseInt("0x" + tone, 16) % 0x10);
+    let $sel = [...$q(".keyboard.selected")];
+    if ($sel.length < 2) return [];
+    return $sel.map($dom => $dom.id).sort().map(v => parseInt("0x" + v.slice(1), 16) % 0x10);
 };
 
 p2c.event = () => {
-    $(".keyboard").click(function(){
-        let id = $("#tab li.select").attr("id");
-        if (id != "p2c") $("#p2c").click();
-        var $obj = $(this);
-        if ($obj.hasClass("selected")) {
-            $obj.removeClass("selected");
-        } else {
-            $obj.addClass("selected");
-        }
+    [...$c("keyboard")].map($dom => $dom.addEventListener("click", () => {
+        let id = $q("#tab li.select")[0].id;
+        if (id != "p2c") $id("p2c").click();
+        $dom.classList.toggle("selected");
         p2c.hash();
-    });
+    }));
 };
 
 p2c.draw = () => {
-    $(".piano, #outchord").show();
+    $id("outchord").style.display = "";
+    $c("piano")[0].style.display = "";
     const chords = chordname(p2c.tone(), is_sharp());
     return p2c.show_chords(chords);
 };
 
 p2c.reset = () => {
-    $(".keyboard.selected").removeClass("selected");
+    [...$q(".keyboard.selected")].map($dom => $dom.classList.remove("selected"));
 };
 
 
@@ -107,65 +108,64 @@ g2c.show_chords = show_chords;
 g2c.hash = function(hash)
 {
     if (hash == undefined) {
-        let fret = $(".fret.selected, .open.selected").map(function(){
-            return $(this).attr("name");
-        }).get().reduce((fret, v) => {
-            const string = v[0] - 1;
-            const pos = parseInt(v[1]);
+        let fret = [... $q(".fret.selected, .open.selected")].map($dom => $dom.id)
+        .reduce((fret, v) => {
+            const string = v[1] - 1;
+            const pos = parseInt(v[2]);
             fret[string] = (0 < pos) ? pos : "x";
             return fret;
         }, [0,0,0,0,0,0]).join("");
-        
+
         let params = [fret];
-        const ceja = $(".ceja.selected").attr("name");
-        const pos = parseInt($(".ceja:first").text());
-        if (ceja) params.push("c" + ceja);
-        if (pos > 1) params.push("p" + pos);
-        if (!$(".accidental").hasClass("sharp")) params.push("b");
-        
+        const ceja = $q(".ceja.selected")[0]
+        const pos = parseInt($c("ceja")[0].innerText);
+        if (ceja) params.push(ceja.id);
+        if (1 < pos) params.push("p" + pos);
+        if (!$c("accidental")[0].classList.contains("sharp")) params.push("b");
+        console.log(params);
+
         location.href = "#g2c=" + params.join(".");
         return;
     }
 
     hash.split(".").forEach(key => {
         if (key.length == 6) {
-            $(".fret,.ceja,.open").removeClass("selected");
-            key.split("").map((v,i) => (v == "x") ? [".open", (i * 10 + 10)] : [".fret", (i * 10 + 10 + v * 1)])
-                .forEach(obj => $(obj[0] + "[name=" + obj[1] + "]").addClass("selected"));
-        }
-        if (key.match(/^c[0-9]+/)) {
-            $(".ceja").removeClass("selected");
-            $(".ceja[name=" + key.slice(1) + "]")
-                .addClass("selected");
-        }
-        if (key == "b") {
-            $(".accidental").removeClass("sharp");
-        }
-        if (key.match(/^p[0-9]+/)) {
-            $(".ceja").each(function(i){
-                $(this).text(key.slice(1) * 1 + i);
+            [...$q(".fret,.ceja,.open")].map($dom => $dom.classList.remove("selected"));
+            key.split("").map((v, i) => {
+                if (v == 0) return;
+                let id = "g" + (i + 1).toString() + (v == "x" ? "0" : v);
+                $id(id).classList.add("selected");
             });
         }
+        if (key.match(/^c[0-9]+/)) {
+            [... $c("ceja")].map($dom => $dom.classList.remove("selected"));
+            $id(key).classList.add("selected");
+        }
+        if (key == "b") {
+            $c("accidental")[0].classList.remove("sharp");
+        }
+        if (key.match(/^p[0-9]+/)) {
+            [...$c("ceja")].map(($dom, i) => { $dom.innerText = (key.slice(1) * 1 + i); });
+        }
+
     });
 };
 
 g2c.tone = function()
 {
     let fretpos = [0,0,0,0,0,0];
-    $(".fret.selected, .open.selected").each(function(){
-        var strg = $(this).attr("name").charAt(0);
-        var fret = $(this).attr("name").charAt(1);
+    [... $q(".fret.selected, .open.selected")].forEach(($dom) => {
+        var strg = $dom.id[1];
+        var fret = $dom.id[2];
         fretpos[strg - 1] = (0 < fret) ? parseInt(fret) : -1;
     });
 
     // ツェーハの左側を押弦していたら開放扱い
-    $(".ceja.selected").each(function(){
-        const ceja = parseInt($(this).attr("name"));
-        fretpos = fretpos.map(pos => ((pos != -1) && (pos < ceja)) ? ceja : pos);
-    });
-
+    const ceja = $q(".ceja.selected")[0] ? $q(".ceja.selected")[0].id.slice(1) * 1 : 0;
+    fretpos = fretpos.map(pos => ((pos != -1) && (pos < ceja)) ? ceja : pos);
+    
     // フレット表示位置の追加
-    fretpos = fretpos.map(pos => (pos <= 0) ? pos : ($(".ceja:first").text() * 1 - 1 + pos));
+    fretpos = fretpos.map(pos => (pos <= 0) ? pos : ($c("ceja")[0].innerText * 1 - 1 + pos));
 
     //音名に変換
     const toneOpen = [4, 11, 7, 2, 9, 4]; //ギターの開放弦(EBGDAE)
@@ -174,149 +174,155 @@ g2c.tone = function()
 };
 
 g2c.draw = () => {
-    var $ceja = $(".ceja.selected");
+    let $ceja = $q(".ceja.selected");
+    const ceja = ($ceja.length == 0) ? 0 : $ceja[0].id.slice(1);
 
-    const ceja = ($ceja.length == 0) ? 0 : $ceja.attr("name");
-    $(".fret").text("").each(function(){
-        var strg = $(this).attr("name").charAt(0);
-        var fret = $(this).attr("name").charAt(1);
-        if ($(this).hasClass("selected") && (ceja < fret))
-            $("<div>").addClass('pressdown').appendTo(this);
-        if ((ceja == fret) && (strg == 1))
-            $("<div>").addClass('pressceja').appendTo(this);
+    [... $c("fret")].forEach($dom => {
+        $dom.innerText = "";
+        const strg = $dom.id[1];
+        const fret = $dom.id[2];
+        if ($dom.classList.contains("selected") && (ceja < fret)) {
+            let $div = document.createElement("div");
+            $div.classList.add('pressdown');
+            $dom.appendChild($div);
+        }
+        if ((ceja == fret) && (strg == 1)) {
+            let $div = document.createElement("div");
+            $div.classList.add('pressceja');
+            $dom.appendChild($div);
+        }
     });
 
-    $(".open").text("").each(function(){
-        if ($(this).hasClass("selected"))
-            $(this).text("X");
+    [... $c("open")].forEach($dom => {
+        $dom.innerText = ("");
+        if ($dom.classList.contains("selected"))
+            $dom.innerText = ("X");
         else if (ceja)
             return;
-        else if ($(this).siblings(".selected").length == 0)
-            $(this).text("O");
+        else if ($dom.parentNode.getElementsByClassName("selected").length == 0)
+            $dom.innerText = ("O");
     });
-    $("<div>").addClass("strings").appendTo(".open");
 
-    $(".guitar, #outchord").show();
+    $c("guitar")[0].style.display = "";
+    $id("outchord").style.display = "";
+
+    [...$c("open")].map($dom => {
+        let $div = document.createElement("div");
+        $div.classList.add("strings");
+        $dom.append($div);
+    });
+
     const chords = chordname(g2c.tone(), is_sharp());
     g2c.show_chords(chords);
 };
 
-
-
 g2c.reset = () => {
-    $(".fret, .open, .ceja").removeClass("selected");
-    $(".ceja").each(function(){ $(this).text($(this).attr("name")); });
+    [...$q(".fret, .open, .ceja")].map($dom => $dom.classList.remove("selected"));
+    [...$c("ceja")].map($dom => $dom.innerText = $dom.id.slice(1));
 };
 
 g2c.event = () => {
-    $(".fret, .open").click(function(){
-        var $ceja = $(".ceja.selected");
-        var ceja = ($ceja.length == 0) ? 0 : $ceja.attr("name");
-        var fret_dep = $(this).attr("name") % 10;
-        if (0 < fret_dep && fret_dep <= ceja) return;
-        if (!$(this).hasClass("selected")){
-            $(this).siblings(".selected").removeClass("selected");
-            $(this).addClass("selected");
-        } else {
-            $(this).removeClass("selected");
-        }
+    [...$q(".fret, .open")].map(
+        $dom => $dom.addEventListener("click", () => {
+            const $ceja = $q(".ceja.selected");
+            const ceja = ($ceja.length == 0) ? 0 : $ceja[0].id.slice(1);
+            const pos = $dom.id.slice(1) % 10;
+            if (0 < pos && pos <= ceja) return;
+            let is_set = !$dom.classList.contains("selected");
+            [...$dom.parentNode.children].map($sibl => $sibl.classList.remove("selected"));
+            if (is_set) $dom.classList.add("selected");
+            g2c.hash();
+        }));
+
+    [...$c("ceja")].map($dom => $dom.addEventListener("click", () => {
+        let is_set = !$dom.classList.contains("selected");
+        [...$c("ceja")].map($sibl => $sibl.classList.remove("selected"));
+        if (is_set) $dom.classList.add("selected");
+        g2c.hash();
+    }));
+    
+    $c("plus")[0].addEventListener("click", () => {
+        if ($c("ceja")[0].innerText * 1 >= 22) return;
+        [...$c("ceja")].map($obj => $obj.innerText = ($obj.innerText * 1 + 1));
         g2c.hash();
     });
     
-    $(".ceja").click( function(){
-        var ceja = $(".ceja.selected").attr("name");
-        var is_set = !$(this).hasClass("selected");
-        $(".ceja").removeClass("selected");
-        if (is_set) $(this).addClass("selected");
-        g2c.hash();
-    });
-    
-    $(".plus").click(function(){
-        if ($(".ceja:last").text() * 1 >= 22) return;
-        $(".ceja").each(function(){ $(this).text($(this).text() * 1 + 1); });
-        g2c.hash();
-    });
-    
-    $(".minus").click(function(){
-        if ($(".ceja:first").text() * 1 <= 1) return;
-        $(".ceja").each(function(){ $(this).text($(this).text() * 1 - 1); });
+    $c("minus")[0].addEventListener("click", () => {
+        if ($c("ceja")[0].innerText * 1 <= 1) return;
+        [...$c("ceja")].map($obj => $obj.innerText = ($obj.innerText * 1 - 1));
         g2c.hash();
     });
 };
 
 c2p.reset = () => {
-    $("#inchord :checkbox").prop("checked", false);
+    [... $q("#inchord input[type=checkbox]")].map($dom => ($dom.checked = false));
 };
 
 c2p.hash = (hash) => {
     if (hash == undefined) {
-        location.href = "#" + $("#tab li.select").attr("id") + "=" + $("#chordname").val();
+        location.href = "#" + $q("#tab li.select")[0].id + "=" + $id("chordname").value;
         return;
     }
 
     hash.split(".").forEach(key => {
         if (key == "b") {
-            $(".accidental").removeClass("sharp");
+            $c("accidental")[0].classList.remove("sharp");
             return;
         }
-        $("#chordname").val(key);
+        $id("chordname").value = key;
     });
 
     c2p.name2check();
 };
 
 c2p.event = () => {
-    $("#chordname").keydown(function(e) {
-        if (e.keyCode != 13) return;
-        c2p.hash();
-    });
+    $id("chordname").addEventListener("keydown", (e) => (e.keyCode == 13) ? c2p.hash() : "");
 
-    $("#inchord :checkbox, #inchord select").change(function() {
-        var val = $(this).parent().text().split("/").shift().trim();
+    [...$q("#inchord input[type=checkbox], #inchord select")].map(
+        $dom => $dom.addEventListener("change", () => {
+            let val = $dom.parentNode.innerText.split("/").shift().trim();
 
-        // 排他処理
-        if ($(this).prop("checked")) {
-            var list = $("#inchord label").map(function(){ return $(this).text(); }).get()
-                .map(key => key.split("/").shift().trim());
+            // 排他処理
+            if ($dom.checked) {
+                let list = [...$q("#inchord label")]
+                    .map($dom => $dom.innerText.split("/").shift().trim());
 
-            [["+5","-5","dim"],
-             ["+5","-5","omit5"],
-             ["+5","(-13)"],
-             ["-5","(+11)"],
-             ["m","(+9)"],
-             ["m", "omit3", "sus4", "sus2"],
-             ["(11)", "sus4"],
-             ["(13)", "6"],
-             ["m", "dim"],
-             ["6","M7","7"]].forEach(function(exclusives) {
-                 if (exclusives.indexOf(val) < 0) return;
+                [["+5","-5","dim"],
+                 ["+5","-5","omit5"],
+                 ["+5","(-13)"],
+                 ["-5","(+11)"],
+                 ["m","(+9)"],
+                 ["m", "omit3", "sus4", "sus2"],
+                 ["(11)", "sus4"],
+                 ["(13)", "6"],
+                 ["m", "dim"],
+                 ["6","M7","7"]].forEach((exclusives) => {
+                     if (exclusives.indexOf(val) < 0) return;
 
-                 exclusives.forEach(function(form) {
-                     if (list.indexOf(form) < 0) return;
-                     $("#inchord :checkbox").eq(list.indexOf(form)).prop("checked", false);
+                     exclusives.forEach((form) => {
+                         if (list.indexOf(form) < 0) return;
+                         $q("#inchord input[type=checkbox]")[list.indexOf(form)].checked = false;
+                     });
                  });
-             });
-            $(this).prop("checked", true);
-        }
+                $dom.checked = true;
+            }
 
-        let ret = c2p.check2name();
-        c2p.hash();
-    });
-
+            let ret = c2p.check2name();
+            c2p.hash();
+        }));
 };
 
 // 命名およびretオブジェクトの生成
 c2p.check2name = () => {
-    const diffform = {"m": "min", "aug": "+5", "M7":"maj7"};
-    var ret = {root:0, triad: "", tetrad: "", tensions: [], onroot: -1};
-    ret.root = pitchclass($("#root option:selected").text());
-    var val = $("#root option:selected").text();
+    const diffform = {"m": "min", "aug": "+5", "M7": "maj7"};
+    let val = [...$q("#root option")].find($dom => $dom.selected).value;
+    let ret = {root:0, triad: "", tetrad: "", tensions: [], onroot: -1, root: pitchclass(val)};
 
-    $("#inchord :checkbox:checked").each(function() {
-        var n = $("#inchord :checkbox").index(this)
-        var key = $(this).parent().text().split("/").shift().trim();
+    [...$q("#inchord input[type=checkbox]")].map(($dom, n) => {
+        if (!$dom.checked) return;
+        let key = $dom.parentNode.innerText.split("/").shift().trim();
         if (key == "on") {
-            var onrootkey = $("#onroot option:selected").text();
+            let onrootkey = [...$q("#onroot option")].find($dom => $dom.selected).value;
             ret.onroot = pitchclass(onrootkey);
             if (ret.onroot == ret.root) {
                 ret.onroot = -1;
@@ -333,27 +339,28 @@ c2p.check2name = () => {
         else ret.tensions.push(key);
     });
 
-    $("#chordname").val(val);
+    $id("chordname").value = val;
     return ret;
 };
 
 const ignored_chordname = (ignored) => {
     if (!ignored) {
-        return $("#ignored").hide();
+        return $id("ignored").style.display = "none";
     }
-    $("#ignored").show();
-    $("#ignoredstr").text(ignored);
+    $id("ignored").style.display = "inline";
+    $id("ignoredstr").innerText = ignored;
 };
 
 c2p.draw = (struct) => {
-    $(".piano, #inchord").show();
-    $(".keyboard").removeClass("selected");
-    var tones = name2tones(struct.triad, struct.tetrad, struct.tensions);
-    var onroot = struct.onroot == -1 ? struct.root : struct.onroot;
+    $c("piano")[0].style.display = "";
+    $id("inchord").style.display = "";
+    [...$c("keyboard")].map($dom => $dom.classList.remove("selected"));
+    let tones = name2tones(struct.triad, struct.tetrad, struct.tensions);
+    let onroot = struct.onroot == -1 ? struct.root : struct.onroot;
     
     let keynames = tones.map((reltone) => {
         if (reltone < 0) return;
-        var tone = reltone + struct.root;
+        let tone = reltone + struct.root;
         if (tone % 12 == onroot % 12) return;
         if (tone < onroot) tone += 12;
         if (24 < tone) tone -= 12;
@@ -362,59 +369,60 @@ c2p.draw = (struct) => {
     
     keynames.push("1" + (onroot % 12).toString(16));
     keynames.forEach(name => {
-        if (name) $(".keyboard[name=" + name + "]").addClass("selected");
+        if (name) $id("k" + name).classList.add("selected");
     });
     ignored_chordname(struct.ignored);
 };
 
 c2p.name2check = () => {
 
-    let $this = $("#chordname");
-    var ret = c2t($this.val());
+    let $this = $id("chordname");
+    let ret = c2t($this.value);
     if (!ret) {
-        var val = $("#root option:selected").text() + $this.val()
-        $this.val(val);
+        let val = [...$q("#root option")].find($dom => $dom.selected).value + $this.value;
+        $this.value = (val);
         ret = c2t(val);
     }
 
-    $("#tab li.select").attr("id") == "c2p" ? c2p.draw(ret) : c2g.draw(ret);
+    $q("#tab li.select")[0].id == "c2p" ? c2p.draw(ret) : c2g.draw(ret);
 
     // namefactorをformに展開
     const extract_form = function(root, onroot, namefactors)
     {
-        var list = $("#inchord label").map(function(){ return $(this).text(); }).get()
-            .map(key => key.split("/").shift().trim());
-        $("#inchord :checkbox").prop("checked", false);
+        let $checks = $q("#inchord input[type=checkbox]");
+        let list = [... $q("#inchord label")]
+            .map($dom => $dom.innerText.split("/").shift().trim());
+        [...$checks].map($dom => $dom.checked = false);
         const diffform = {"min":"m", "aug": "+5", "maj7":"M7"};
         
         namefactors.forEach((name) => {
             if (!name) return;
-            var form = name;
+            let form = name;
             if (diffform[name]) form = diffform[name];
             
             if (list.indexOf(form) != -1) {
-                $("#inchord :checkbox").eq(list.indexOf(form)).prop("checked", true);
+                $checks[list.indexOf(form)].checked = true;
                 return;
             }
-            var val = form;
+            let val = form;
             
             //テンション
-            var interval = interval2semitone(val);
+            let interval = interval2semitone(val);
             if (interval < 0) return;
             // (c2t内でやるべき)
-            var form = { 13: "(-9)", 14: "(9)", 15: "(+9)",
-                         17: "(11)", 18: "(+11)",
-                         20: "(-13)", 21: "(13)",
-                         6: "-5",  8: "+5"}[interval];
+            form = { 13: "(-9)", 14: "(9)", 15: "(+9)",
+                     17: "(11)", 18: "(+11)",
+                     20: "(-13)", 21: "(13)",
+                     6: "-5",  8: "+5"}[interval];
             if(list.indexOf(form) == -1) return;
-            $("#inchord :checkbox").eq(list.indexOf(form)).prop("checked", true);
+            $checks[list.indexOf(form)].checked = true;
         });
-        
-        $("#root option").eq(root).prop("selected", true);
-        
+
+        $q("#root option")[root].selected = true;
+
         if (onroot != -1) {
-            $("#onroot option").eq(onroot).prop("selected", true);
-            $("#inchord :checkbox:last").prop("checked", true);
+            $q("#onroot option")[onroot].selected = true;
+            $checks[$checks.length - 1].checked = true;
         }
     };
 
@@ -432,38 +440,64 @@ c2g.draw = (struct) => {
     if (struct.onroot != -1)
         tones.unshift((struct.onroot + 3) % 12);
 
-    $(".gtform, #inchord").show();
-    $("#chforms").html("");
+    $c("gtform")[0].style.display = "";
+    $id("inchord").style.display = "";
+    $id("chforms").innerText = "";
 
-    tri(tones);
+    tri(tones, (fret, point) => {
+        let $chord = $id("chord_template").cloneNode(true);
+        $chord.style.display = "block";
+        $id("chforms").appendChild($chord);
+
+        let min = fret.reduce((min, v) => ((0 < v) && (min == -1 || v < min) ? v : min), -1);
+        if (min != 0) $chord.getElementsByClassName("min")[0].innerText = (min);
+        $chord.getElementsByClassName("point")[0].innerText = (point);
+
+        fret.map((val, index) => {
+            let $div = document.createElement("div");
+            $chord.appendChild($div);
+            $div.classList.add("s");
+            $div.css = (param) => Object.keys(param).forEach(key => $div.style[key] = param[key]);
+
+            if (val == -1) {
+                $div.css({"left": "0", "top": ((5 - index) * 7 - 3) + "px", "background-color":"transparent"});
+                $div.innerHTML = "X";
+            }
+            else if (val == 0)
+                $div.css({"left": "0", "top": ((5 - index) * 7) + "px"});
+            else
+                $div.css({"left": (12 * (val - min + 1)) + "px", "top": ((5 - index) * 7) + "px"});
+        });
+    });
+
     ignored_chordname(struct.ignored);
 };
 
 
 
-$(function() {
+window.onload = function() {
     // モード切替
-    $("#tab li").click(function() {
-        extract_hash("#" + $(this).attr("id") + "=");
-    });
+    [...$q("#tab li")].map($dom => $dom.addEventListener("click", function() {
+        extract_hash("#" + $dom.getAttribute("id") + "=");
+    }));
 
     // リセット
-    $(".reset").click(function(){
+    $c("reset")[0].addEventListener("click", function(){
         ui.reset();
         extract_hash();
     });
 
     // 臨時記号
-    $(".accidental").click(function(){
-        if ($(this).hasClass("sharp"))
-            $(this).removeClass("sharp");
-        else
-            $(this).addClass("sharp");
+    $c("accidental")[0].addEventListener("click", function(){
+        this.classList.toggle("sharp");
         extract_hash();
     });
 
-    ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].forEach(function(tone) {
-        $("<option>").text(tone).appendTo("#root, #onroot");
+    ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].forEach((tone) => {
+        let $opt = document.createElement("option");
+        $opt.innerText = tone;
+        $id("root").appendChild($opt);
+        $id("onroot").appendChild($opt.cloneNode(true));
     });
 
     p2c.event();
@@ -472,15 +506,15 @@ $(function() {
 
     // ハッシュのDOM展開
     const extract_hash = (hash) => {
-        if (!hash) hash = "#" + $("#tab li.select").attr("id") + "=";
+        if (!hash) hash = "#" + $q("#tab li.select")[0].getAttribute("id") + "=";
 
         let param = decodeURI(hash.slice(1)).split("=");
         const id = param.shift();
         const key = param.shift();
 
-        $(".content_wrap").hide();
-        $("#tab li").removeClass('select');
-        $("#" + id).addClass('select');
+        [...$q(".content_wrap")].map($dom => $dom.style.display = "none");
+        [...$q("#tab li")].map($dom => $dom.classList.remove('select'));
+        $id(id).classList.add('select');
 
         if (id == "p2c") {
             ui = p2c;
@@ -511,4 +545,4 @@ $(function() {
 
     window.addEventListener("hashchange", () => { extract_hash(location.hash); }, false);
     extract_hash(location.hash);
-});
+};
