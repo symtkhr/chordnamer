@@ -1,5 +1,7 @@
+const chordlibs = {};
+
 // コード名を返す
-const chordname = function(tones, is_sharp)
+chordlibs.name = function(tones, is_sharp)
 {
     let complex = 0; //複雑さ
 
@@ -25,14 +27,14 @@ const chordname = function(tones, is_sharp)
     //3度と5度を取り出す(なんかエレガントな書き方ないか...?)
     const factorize = function(incl)
     {
-        var triad = {};
+        let triad = {};
 
         //m7とM7が同時に鳴っている和音はコード化できない
         if (incl[10] && incl[11]) return {};
 
         if (incl[4]) {        // ------------ M3 based
             triad.third = 4;
-            if　(incl[7]) {          // M3 + P5
+            if (incl[7]) {          // M3 + P5
                 triad.fifth = 7;
             } else if(incl[8]) {  // M3 + aug5
                 triad.fifth = 8;
@@ -77,10 +79,10 @@ const chordname = function(tones, is_sharp)
     //三和音と残りの構成音をコード名にする
     const assemblechord = function(triad, incl)
     {
-        var tension = [];
-        var str_triad = "";
-        var str_7th = "";
-        var str_5th = "";
+        let tension = [];
+        let str_triad = "";
+        let str_7th = "";
+        let str_5th = "";
         
         if (triad.third == 3) str_triad = "m";
         if (triad.third == 4) str_triad = "";
@@ -125,7 +127,7 @@ const chordname = function(tones, is_sharp)
     //tones[] からコード名をつける
     return function(tones)
     {
-        var originroot = tones[0];
+        const originroot = tones[0];
 
         //重複音の除去
         tones = tones.filter((tone, i, self) => self.indexOf(tone) == i);
@@ -135,14 +137,14 @@ const chordname = function(tones, is_sharp)
             complex = 0;
 
             // ルートからの音程クラス配列を得る
-            var includings = relatives(root, tones);
+            let includings = relatives(root, tones);
  
             // 3度と5度を取り出す
-            var triad = factorize(includings);
+            let triad = factorize(includings);
             if (!triad.third && !triad.fifth) return;
 
             // 命名する
-            var fullname = tonename(root) + assemblechord(triad, includings);
+            let fullname = tonename(root) + assemblechord(triad, includings);
 
             // オンコード
             if (root != originroot) {
@@ -156,90 +158,78 @@ const chordname = function(tones, is_sharp)
     }(tones);
 };
 
-//コード名文字列解釈
-const chordstruct = function(str) {
-    var origin = str;
+//コード名から構成音を返す
+chordlibs.struct = function(chordname)
+{
+    let str = chordname;
     str = str.split(" ").join("");
 
-    var root = str.match(/^[A-G][#b]?/);
+    let root = str.match(/^[A-G][#b]?/);
     if (!root) return false;
-    str = str.substr(root[0].length);
+    str = str.slice(root[0].length);
 
-    var onroot = str.match(/\(?(on|\/)([A-G][#b]?)\)?$/);
+    let onroot = str.match(/\(?(on|\/)([A-G][#b]?)\)?$/);
     if (onroot) {
-        str = str.substr(0, str.length - onroot[0].length);
+        str = str.slice(0, -onroot[0].length);
     }
     
-    var triad = str.match(/^(maj|min|dim|aug|m)/i);
+    let triad = str.match(/^(maj|min|dim|aug|m)/i);
     if (triad) {
         triad = triad.shift();
-        str = str.substr(triad.length);
+        str = str.slice(triad.length);
         if (triad === "m") triad = "min";
         if (triad === "M") triad = "maj";
         triad = triad.toLowerCase();
     }
 
-    var seventh = str.match(/^(6|7|M7?)/) || str.match(/^maj7?/i);
+    let seventh = str.match(/^(6|7|M7?)/) || str.match(/^maj7?/i);
     if (seventh) {
         seventh = seventh.shift();
-        str = str.substr(seventh.length);
+        str = str.slice(seventh.length);
         if (seventh !== "6" && seventh !== "7") seventh = "maj7";
         if (triad == "maj" && seventh === "7") seventh = "maj7";
     }
-    
-    var tensions = [];
-    var tension = str.match(/add[0-9,#b+-]+/g);
-    if (tension) {
-        while (tension.length > 0) {
-            var t = tension.shift();
-            str = str.split(t).join("");
-            var ts = t.substr(3).split("").map(function(c) {
-                if (c == "1") return c;
-                if (c.match(/[#b+-]/)) return "," + c;
-                return c + ",";
-            }).join("").split(",").forEach(function(v) {
-                if (v) tensions.push(v);
-            });
-        }
-    }
-    
-    var tension = str.match(/\([0-9,#b+-]+\)/g);
-    if (tension) {
-        while (tension.length > 0) {
-            var t = tension.shift();
-            str = str.split(t).join("");
-            var ts = t.substr(1, t.length - 2).split("").map(function(c) {
-                if (c == "1") return c;
-                if (c.match(/[#b+-]/)) return "," + c;
-                return c + ",";
-            }).join("").split(",").forEach(function(v) {
-                if (v) tensions.push(v);
-            });
-        }
+
+    // addつきテンション
+    let tension1 = str.match(/add[0-9,#b+-]+/g) || [];
+    tension1.forEach(t => (str = str.split(t).join("")));
+    tension1 = tension1.map(t => t.slice(3).split("").map(c => {
+        if (c == "1") return c;
+        if (c.match(/[#b+-]/)) return "," + c;
+        return c + ",";
+    }).join(""));
+
+    // 括弧付きテンション
+    let tension2 = str.match(/\([0-9,#b+-]+\)/g) || [];
+    tension2.forEach(t => (str = str.split(t).join("")));
+    tension2 = tension2.map(t => t.slice(1, -1).split("").map(c => {
+        if (c == "1") return c;
+        if (c.match(/[#b+-]/)) return "," + c;
+        return c + ",";
+    }).join(""));
+
+    // その他表現
+    let tension3 = str.match(/(aug|sus[24]|[#b+-]5|[#b+-]?9|[#+]?11|[b-]?13|omit[35])/gi) || [];
+    tension3.forEach(t => (str = str.split(t).join("")));
+
+    // 7th省略表記
+    if (!seventh && tension3.some(t => t.match(/(9|11|13)$/))) {
+        seventh = (triad == "maj") ? "maj7" : "7";
     }
 
-    var tension = str.match(/(aug|sus[24]|[#b+-]5|[#b+-]?9|[#+]?11|[b-]?13|omit[35])/gi);
-    if (tension) {
-        while (tension.length > 0) {
-            var t = tension.shift();
-            str = str.split(t).join("");
-            tensions.push(t);
-            
-            //7th省略表記
-            if (t.match(/(9|11|13)$/) && !seventh) {
-                seventh = (triad == "maj") ? "maj7" : "7";
-            }
-        }
-    }
-
-    return {
+    let struct = {
         root: pitchclass(root[0]),
         triad: triad,
         tetrad: seventh,
-        tensions: tensions,
+        tensions: [tension1, tension2, tension3].map(a => a.join(",")).join(",").split(",").filter(v => v),
         onroot: onroot ? pitchclass(onroot[2]) : -1,
-        ignored: str
+        ignored: str,
     };
+    struct.tones = name2tones(struct.triad, struct.tetrad, struct.tensions)
+        .map(tone => (tone + struct.root));
+    if (onroot) struct.tones.unshift(struct.onroot);
+
+    return struct;
 };
 
 //要素に切ったものをtones化する
@@ -266,8 +256,7 @@ const name2tones = function(triad, seventh, tensions)
         else ret.push(c - 1);
     }
 
-    if (!tensions) tensions = [];
-    tensions.forEach(val => {
+    (tensions || []).forEach(val => {
         val = val.toLowerCase();
         if (val === "aug") ret[1] = interval2semitone("+5");;
         if (val.indexOf("sus4") == 0) ret[0] = interval2semitone("4");
@@ -280,14 +269,14 @@ const name2tones = function(triad, seventh, tensions)
         if (interval < 0) return;
 
         //5度を書き換え
-        if (val.indexOf("5") == val.length - 1) {
+        if (val.slice(-1) == "5") {
             ret[1] = interval;
         } else {
             ret.push(interval);
         }
     });
     ret.unshift(0);
-    return ret;
+    return ret.filter(v => v != -1);
 };
 
 //音名(C-B)からピッチクラス(0-11)を返す
@@ -316,9 +305,11 @@ const interval2semitone = (str) =>
     return pitch + 12 * octave;
 };
 
+chordlibs.interval2semitone = interval2semitone;
+
 
 /*
-<chordstruct:algorithm>
+<struct: algorithm>
 (1)ルートを取り除く
 (2)トライアド部を取り除く
 M,m,Maj,maj,dim,sus,aug
@@ -332,50 +323,4 @@ omit3,5
 aug (2)であった場合はエラー
 4,2,カッコつきはエラー
 */
-
-var unittest = function(){
-    console.log(interval2semitone("-9"));
-    console.log(interval2semitone("9"));
-    console.log(interval2semitone("#9"));
-    console.log(interval2semitone("+9"));
-    console.log(interval2semitone("11"));
-    console.log(interval2semitone("+11"));
-    console.log(interval2semitone("#11"));
-    console.log(interval2semitone("b13"));
-    console.log(interval2semitone("-13"));
-    console.log(interval2semitone("13"));
-    console.log(interval2semitone("+5"));
-    console.log(interval2semitone("#5"));
-    console.log(interval2semitone("-5"));
-    console.log(interval2semitone("b5"));
-    console.log(interval2semitone("omit3"));
-
-    c2t("C#m7-5");
-    c2t("C#m7(-5)");
-    c2t("C#m7(b5)");
-    c2t("C#m7b5");
-    c2t("C#9-5");
-    c2t("Cmaj7");
-    c2t("CM7");
-    c2t("CmM7");
-    c2t("C9");
-    c2t("Cm9");
-    c2t("CM9");
-    c2t("Cmin7");
-    c2t("Csus4");
-    c2t("Csus2");
-    c2t("C7sus4");
-    c2t("C9sus4");
-    c2t("Cdim");
-    c2t("Cdim7");
-    c2t("C7aug");
-    c2t("Caug7");
-    c2t("CM7aug");
-    c2t("C69");
-    c2t("Cm(9,11)");
-    c2t("Cm9(11)");
-    c2t("Cm(9)(11)");
-    c2t("Cadd9");
-    c2t("Cadd9omit3");
-};
 
