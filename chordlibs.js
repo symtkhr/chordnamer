@@ -307,6 +307,9 @@ const interval2semitone = (str) =>
 
 chordlibs.interval2semitone = interval2semitone;
 
+try {
+    module.exports = chordlibs;
+} catch(e) {}
 
 /*
 <struct: algorithm>

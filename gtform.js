@@ -151,6 +151,9 @@ const guitarform = function(tones) {
     return result;
 };
 
+try {
+    module.exports = guitarform;
+} catch(e) {}
 /*
 <guitarform: algorithm>
 (1)構成音の押弦位置をすべて洗う(gt_mapper)

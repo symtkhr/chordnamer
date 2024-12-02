@@ -1,13 +1,17 @@
-var unittest = function(){
-    let test = chordlibs.interval2semitone;
+#!/bin/node
+let test = {};
+test.interval = function(){
+    let chordlibs = require("./chordlibs.js");
     ["-9", "9", "#9", "+9",
      "11", "+11", "#11",
      "b13", "-13", "13",
      "+5", "#5", "-5", "b5", "omit3"].forEach(v => {
-         console.log(v,test(v));
+         console.log(v,":",chordlibs.interval2semitone(v));
      });
-
-    test = chordlibs.struct;
+};
+test.chordstruct = function(){
+    let chordlibs = require("./chordlibs.js");
+    let test = chordlibs.struct;
     ["C#m7-5", "C#m7(-5)", "C#m7(b5)", "C#m7b5", "C#9-5",
      "Cmaj7", "CM7", "CmM7", "C9", "Cm9", "CM9", "Cmin7",
      "Csus4", "Csus2", "C7sus4", "C9sus4", "Cdim", "Cdim7",
@@ -16,7 +20,9 @@ var unittest = function(){
      "F/C","Fm7onC",
     ]
     .forEach(v => console.log(v + "\t" + JSON.stringify(test(v))));
-
+}
+test.chordname = function(){
+    let chordlibs = require("./chordlibs.js");
     let params = [[0,3,6],[0,4,6],
      [0,3,7],[0,4,7],[0,5,7],
      [0,3,8],[0,4,8],[0,5,8],
@@ -34,10 +40,10 @@ var unittest = function(){
         console.log(v.join(",")==t.join(","), v, t, name[0].name);
     });
 };
-
-var unittest = () => {
-    let test = guitarform;
-    var params = [
+test.gtform = () => {
+    let guitarform = require("./gtform.js");
+    let chordlibs = require("./chordlibs.js");
+    const params = [
         "A","B","C","D","E","F","G",
         "Am","Bm","Cm","Dm","Em","Fm","Gm",
         "Am7","Bm7","Cm7","Dm7","Em7","Fm7","Gm7",
@@ -46,16 +52,18 @@ var unittest = () => {
         "Asus4","Bsus4","Csus4","Dsus4","Esus4","Fsus4","Gsus4",
     ];
 
-    params.forEach(
-        v => {
-            let tone = chordlibs.struct(v).tones;
-            let ret = test(tone).filter(a=>a.comp<2).map(a=>a.form.map(v=>v<0?"x":v.toString(16)).join("")+":"+a.comp);
-            console.log('"' + v + '",' + JSON.stringify(ret));
-        });
+    params.forEach(v => {
+        let tone = chordlibs.struct(v).tones;
+        let ret = guitarform(tone).filter(a=>a.comp<2).map(a=>a.form.map(v=>v<0?"x":v.toString(16)).join("")+":"+a.comp);
+        console.log('"' + v + '",' + JSON.stringify(ret));
+    });
 
 };
 
-unittest();
+let args = process.argv.slice(2);
+console.log(args);
+if (args.length == 0 || !test[args[0]]) return console.log(Object.keys(test));
+test[args[0]]();
 
 /*
 "A",["x02220","x57655"]
